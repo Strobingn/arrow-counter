@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { ArrowSession } from '@/types';
+import type { ArrowSession, Location } from '@/types';
 
 const STORAGE_KEY = 'arrow-tracker-data';
 
@@ -26,7 +26,7 @@ export function useArrows() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [sessions]);
 
-  const addArrows = useCallback((count: number, note?: string) => {
+  const addArrows = useCallback((count: number, note?: string, location?: Location) => {
     const now = Date.now();
     const today = new Date().toISOString().split('T')[0];
     
@@ -36,6 +36,7 @@ export function useArrows() {
       arrowCount: count,
       date: today,
       note,
+      location,
     };
     
     setSessions((prev) => [newSession, ...prev]);
@@ -45,10 +46,10 @@ export function useArrows() {
     setSessions((prev) => prev.filter((s) => s.id !== sessionId));
   }, []);
 
-  const editSession = useCallback((sessionId: string, newCount: number, newNote?: string) => {
+  const editSession = useCallback((sessionId: string, newCount: number, newNote?: string, newLocation?: Location) => {
     setSessions((prev) =>
       prev.map((s) =>
-        s.id === sessionId ? { ...s, arrowCount: newCount, note: newNote } : s
+        s.id === sessionId ? { ...s, arrowCount: newCount, note: newNote, location: newLocation } : s
       )
     );
   }, []);
@@ -67,9 +68,28 @@ export function useArrows() {
     if (mostRecent.arrowCount <= 1) {
       deleteSession(mostRecent.id);
     } else {
-      editSession(mostRecent.id, mostRecent.arrowCount - 1, mostRecent.note);
+      editSession(mostRecent.id, mostRecent.arrowCount - 1, mostRecent.note, mostRecent.location);
     }
   }, [sessions, deleteSession, editSession]);
+
+  // Export data as JSON string
+  const exportData = useCallback(() => {
+    return JSON.stringify({ sessions }, null, 2);
+  }, [sessions]);
+
+  // Import data from JSON string
+  const importData = useCallback((json: string) => {
+    const parsed = JSON.parse(json);
+    if (parsed.sessions && Array.isArray(parsed.sessions)) {
+      setSessions(parsed.sessions);
+      return true;
+    }
+    return false;
+  }, []);
+
+  const clearAllData = useCallback(() => {
+    setSessions([]);
+  }, []);
 
   // Get today's sessions
   const todaySessions = sessions.filter(
@@ -152,6 +172,9 @@ export function useArrows() {
       .sort((a, b) => b.date.localeCompare(a.date));
   };
 
+  // Get all sessions with locations
+  const locatedSessions = sessions.filter((s) => s.location);
+
   // Format number with commas
   const formatNumber = useCallback((num: number): string => {
     return num.toLocaleString();
@@ -167,6 +190,7 @@ export function useArrows() {
     bestDay: getBestDay(),
     averagePerSession: getAveragePerSession(),
     history: getHistory(),
+    locatedSessions,
     quickAddValue,
     setQuickAddValue,
     addArrows,
@@ -174,6 +198,9 @@ export function useArrows() {
     removeOneArrow,
     deleteSession,
     editSession,
+    exportData,
+    importData,
+    clearAllData,
     formatNumber,
   };
 }
