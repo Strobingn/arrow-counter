@@ -1,0 +1,64 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4.2.2
+    
+    - name: Set up Node.js 24
+      uses: actions/setup-node@v4.3.0
+      with:
+        node-version: '24'
+    
+    - name: Install dependencies
+      run: |
+        npm install
+        npm install @capacitor/core @capacitor/cli @capacitor/android
+    
+    - name: Build web app
+      run: npm run build
+    
+    - name: Create Capacitor config
+      run: |
+        cat > capacitor.config.json << 'EOF'
+        {
+          "appId": "com.arrowcounter.app",
+          "appName": "Arrow Counter",
+          "webDir": "dist"
+        }
+        EOF
+    
+    - name: Add Android platform
+      run: npx cap add android || echo "Already exists"
+    
+    - name: Sync Capacitor
+      run: npx cap sync android
+    
+    - name: Setup Java 17
+      uses: actions/setup-java@v4.7.0
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+    
+    - name: Build Debug APK
+      run: |
+        cd android
+        chmod +x ./gradlew
+        ./gradlew assembleDebug --info
+    
+    - name: Upload APK to Artifacts
+      uses: actions/upload-artifact@v4.6.2
+      with:
+        name: arrow-counter-apk
+        path: android/app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 7
