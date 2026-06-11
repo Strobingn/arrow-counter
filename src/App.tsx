@@ -11,6 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Toaster } from '@/components/ui/sonner';
 import './App.css';
 
+const GOAL_STORAGE_KEY = 'arrow-tracker-goal';
+const DEFAULT_GOAL = 30;
+
 function App() {
   const {
     todaySessions,
@@ -35,6 +38,28 @@ function App() {
 
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Daily goal state - persisted using its own localStorage key ('arrow-tracker-goal')
+  // completely separate from the existing 'arrow-tracker-data' sessions storage.
+  const [goal, setGoalState] = useState<number>(DEFAULT_GOAL);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(GOAL_STORAGE_KEY);
+    if (stored) {
+      const parsed = parseInt(stored, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        setGoalState(parsed);
+        return;
+      }
+    }
+    localStorage.setItem(GOAL_STORAGE_KEY, String(DEFAULT_GOAL));
+  }, []);
+
+  const setGoal = (newGoal: number) => {
+    const clamped = Math.max(1, Math.min(500, Math.floor(newGoal || DEFAULT_GOAL)));
+    setGoalState(clamped);
+    localStorage.setItem(GOAL_STORAGE_KEY, String(clamped));
+  };
+
   useEffect(() => {
     setIsLoaded(true);
   }, []);
@@ -48,6 +73,8 @@ function App() {
             onExport={exportData}
             onImport={importData}
             onClear={clearAllData}
+            goal={goal}
+            onSetGoal={setGoal}
           />
         }
       />
@@ -61,6 +88,8 @@ function App() {
         <section className="max-w-md mx-auto">
           <ArrowCounter
             todayTotal={todayTotal}
+            goal={goal}
+            onSetGoal={setGoal}
             onAdd={addArrows}
             onAddOne={addOneArrow}
             onRemoveOne={removeOneArrow}

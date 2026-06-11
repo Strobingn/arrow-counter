@@ -24,22 +24,33 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useGoogleDrive } from '@/hooks/useGoogleDrive';
-import { Cloud, CloudOff, Download, Upload, Trash2, Settings } from 'lucide-react';
+import { Cloud, CloudOff, Download, Upload, Trash2, Settings, Target } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SettingsSheetProps {
   onExport: () => string;
   onImport: (json: string) => boolean;
   onClear: () => void;
+  goal?: number;
+  onSetGoal?: (goal: number) => void;
 }
 
 const CLIENT_ID_KEY = 'arrow-tracker-google-client-id';
 const DEFAULT_CLIENT_ID = '1093753205781-3i5bdcuoso4b85r2q0tii8dn4pqe645e.apps.googleusercontent.com';
 
-export function SettingsSheet({ onExport, onImport, onClear }: SettingsSheetProps) {
+export function SettingsSheet({ onExport, onImport, onClear, goal, onSetGoal }: SettingsSheetProps) {
   const [clientId, setClientId] = useState('');
   const [initialized, setInitialized] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Local state for daily goal compact editor in settings (synced from prop)
+  const [localGoal, setLocalGoal] = useState(30);
+
+  useEffect(() => {
+    if (typeof goal === 'number' && goal > 0) {
+      setLocalGoal(goal);
+    }
+  }, [goal]);
 
   const {
     isSignedIn,
@@ -69,6 +80,13 @@ export function SettingsSheet({ onExport, onImport, onClear }: SettingsSheetProp
       toast.error(`Google Drive error: ${lastError}`);
     }
   }, [lastError]);
+
+  // Sync goal input from prop (from App state / localStorage)
+  useEffect(() => {
+    if (goal !== undefined) {
+      setGoalInput(goal);
+    }
+  }, [goal]);
 
   const saveClientId = () => {
     localStorage.setItem(CLIENT_ID_KEY, clientId);
@@ -155,6 +173,41 @@ export function SettingsSheet({ onExport, onImport, onClear }: SettingsSheetProp
         </SheetHeader>
 
         <div className="flex flex-col gap-6 py-6">
+          {/* Daily Goal - compact edit control inside Settings (alternative discoverable non-intrusive UX) */}
+          {onSetGoal && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium flex items-center gap-2">
+                <Target className="w-4 h-4" />
+                Daily Goal
+              </h3>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="number"
+                  value={localGoal}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    setLocalGoal(isNaN(v) ? 30 : Math.max(1, Math.min(500, v)));
+                  }}
+                  className="w-24 h-9 text-center rounded-xl"
+                  min={1}
+                  max={500}
+                />
+                <span className="text-sm text-muted-foreground">arrows / day</span>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    onSetGoal(localGoal);
+                    toast.success(`Daily goal set to ${localGoal}`);
+                  }}
+                  className="ml-auto rounded-full"
+                >
+                  Save
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Also tap the progress ring on the main screen to edit.</p>
+            </div>
+          )}
+
           {/* Google Drive Sync */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium flex items-center gap-2">
