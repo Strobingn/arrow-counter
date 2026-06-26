@@ -43,7 +43,6 @@ export function SettingsSheet({ onExport, onImport, onClear, goal, onSetGoal }: 
   const [initialized, setInitialized] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Local state for daily goal compact editor in settings (synced from prop)
   const [localGoal, setLocalGoal] = useState(30);
 
   useEffect(() => {
@@ -80,13 +79,6 @@ export function SettingsSheet({ onExport, onImport, onClear, goal, onSetGoal }: 
       toast.error(`Google Drive error: ${lastError}`);
     }
   }, [lastError]);
-
-  // Sync goal input from prop (from App state / localStorage)
-  useEffect(() => {
-    if (goal !== undefined) {
-      setGoalInput(goal);
-    }
-  }, [goal]);
 
   const saveClientId = () => {
     localStorage.setItem(CLIENT_ID_KEY, clientId);
@@ -173,7 +165,6 @@ export function SettingsSheet({ onExport, onImport, onClear, goal, onSetGoal }: 
         </SheetHeader>
 
         <div className="flex flex-col gap-6 py-6">
-          {/* Daily Goal - compact edit control inside Settings (alternative discoverable non-intrusive UX) */}
           {onSetGoal && (
             <div className="space-y-3">
               <h3 className="text-sm font-medium flex items-center gap-2">
@@ -208,7 +199,6 @@ export function SettingsSheet({ onExport, onImport, onClear, goal, onSetGoal }: 
             </div>
           )}
 
-          {/* Google Drive Sync */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium flex items-center gap-2">
               <Cloud className="w-4 h-4" />
@@ -278,7 +268,6 @@ export function SettingsSheet({ onExport, onImport, onClear, goal, onSetGoal }: 
 
           <Separator />
 
-          {/* Manual Export / Import */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium flex items-center gap-2">
               <Download className="w-4 h-4" />
@@ -308,7 +297,6 @@ export function SettingsSheet({ onExport, onImport, onClear, goal, onSetGoal }: 
 
           <Separator />
 
-          {/* Clear Data */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-destructive flex items-center gap-2">
               <Trash2 className="w-4 h-4" />
