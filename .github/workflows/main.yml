@@ -24,21 +24,7 @@ jobs:
     - name: Build React app
       run: npm run build
     
-    - name: Install Capacitor
-      run: |
-        npm install @capacitor/core @capacitor/cli
-        npm install @capacitor/android
-    
-    - name: Init Capacitor config (if not exists)
-      run: |
-        if [ ! -f capacitor.config.ts ]; then
-          npx cap init "Arrow Counter" com.arrowcounter.app --web-dir dist
-        fi
-    
-    - name: Add Android platform
-      run: npx cap add android || echo "Android already exists"
-    
-    - name: Sync Capacitor
+    - name: Sync Capacitor Android
       run: npx cap sync android
     
     - name: Set up JDK 17
@@ -47,39 +33,22 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
     
-    - name: Grant execute permission for gradlew
-      run: chmod +x android/gradlew
-      working-directory: .
+    - name: Build Debug APK
+      run: cd android && ./gradlew assembleDebug
     
-    - name: Build APK
-      run: |
-        cd android
-        ./gradlew assembleRelease
+    - name: Build Release APK
+      run: cd android && ./gradlew assembleRelease
     
-    - name: Sign APK (optional debug signing)
-      uses: r0adkll/sign-android-release@v1
-      with:
-        releaseDirectory: android/app/build/outputs/apk/release
-        signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-        alias: ${{ secrets.ALIAS }}
-        keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-        keyPassword: ${{ secrets.KEY_PASSWORD }}
-      continue-on-error: true
-    
-    - name: Upload APK as artifact
+    - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
-        name: arrow-counter-apk
-        path: android/app/build/outputs/apk/release/app-release-unsigned.apk
-        retention-days: 5
+        name: arrow-counter-debug
+        path: android/app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 7
     
-    - name: Create Release
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-      uses: marvinpinto/action-automatic-releases@latest
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
       with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "latest"
-        prerelease: true
-        title: "Development Build"
-        files: |
-          android/app/build/outputs/apk/release/app-release-unsigned.apk
+        name: arrow-counter-release
+        path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+        retention-days: 7

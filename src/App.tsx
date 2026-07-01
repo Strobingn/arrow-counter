@@ -6,9 +6,14 @@ import { Stats } from '@/components/Stats';
 import { History } from '@/components/History';
 import { LocationMap } from '@/components/LocationMap';
 import { SettingsSheet } from '@/components/SettingsSheet';
+import { EquipmentSheet } from '@/components/EquipmentSheet';
+import { Charts } from '@/components/Charts';
+import { AchievementPanel } from '@/components/AchievementPanel';
 import { useArrows } from '@/hooks/useArrows';
+import { useAudio } from '@/hooks/useAudio';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import './App.css';
 
 const GOAL_STORAGE_KEY = 'arrow-tracker-goal';
@@ -16,40 +21,42 @@ const DEFAULT_GOAL = 30;
 
 function App() {
   const {
-    todaySessions,
-    todayTotal,
-    weekTotal,
-    monthTotal,
-    allTimeTotal,
-    bestDay,
-    averagePerSession,
-    history,
-    locatedSessions,
-    addArrows,
-    addOneArrow,
-    removeOneArrow,
-    deleteSession,
-    editSession,
-    exportData,
-    importData,
-    clearAllData,
-    formatNumber,
+    todaySessions, todayTotal, weekTotal, monthTotal, allTimeTotal,
+    bestDay, averagePerSession, currentStreak, longestStreak,
+    history, locatedSessions, bowProfiles, defaultBow, equipmentLogs,
+    achievements, quickAddPresets, settings, canUndo, canRedo,
+    addArrows, addOneArrow, removeOneArrow, deleteSession, editSession,
+    undo, redo, addBowProfile, updateBowProfile, deleteBowProfile,
+    addEquipmentLog, deleteEquipmentLog, updateQuickAddPresets, updateSettings,
+    exportData, importData, clearAllData, formatNumber,
   } = useArrows();
 
+  const { playThwack, playAchievement, playGoal } = useAudio();
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Daily goal state - persisted using its own localStorage key ('arrow-tracker-goal')
-  // completely separate from the existing 'arrow-tracker-data' sessions storage.
-  const [goal, setGoalState] = useState<number>(DEFAULT_GOAL);
+  // Track newly unlocked achievements
+  const [prevUnlockedCount, setPrevUnlockedCount] = useState(0);
+  useEffect(() => {
+    const current = achievements.filter(a => a.unlockedAt).length;
+    if (current > prevUnlockedCount && prevUnlockedCount > 0) {
+      const newlyUnlocked = achievements.filter(a => a.unlockedAt && prevUnlockedCount === 0 ? true :
+        !achievements.slice(0, prevUnlockedCount).find(pa => pa.id === a.id && pa.unlockedAt));
+      if (newlyUnlocked.length > 0) {
+        const a = newlyUnlocked[0];
+        if (settings.soundEnabled) playAchievement();
+        toast.success(`Achievement unlocked: ${a.title}!`, { duration: 4000 });
+      }
+    }
+    setPrevUnlockedCount(current);
+  }, [achievements, prevUnlockedCount, playAchievement, settings.soundEnabled]);
 
+  // Daily goal
+  const [goal, setGoalState] = useState<number>(DEFAULT_GOAL);
   useEffect(() => {
     const stored = localStorage.getItem(GOAL_STORAGE_KEY);
     if (stored) {
       const parsed = parseInt(stored, 10);
-      if (!isNaN(parsed) && parsed > 0) {
-        setGoalState(parsed);
-        return;
-      }
+      if (!isNaN(parsed) && parsed > 0) { setGoalState(parsed); return; }
     }
     localStorage.setItem(GOAL_STORAGE_KEY, String(DEFAULT_GOAL));
   }, []);
@@ -60,31 +67,41 @@ function App() {
     localStorage.setItem(GOAL_STORAGE_KEY, String(clamped));
   };
 
-  useEffect(() => {
-    setIsLoaded(true);
-  }, []);
+  useEffect(() => { setIsLoaded(true); }, []);
 
   return (
     <div className="min-h-screen bg-background">
       <Toaster position="top-center" richColors />
       <Header
         actions={
-          <SettingsSheet
-            onExport={exportData}
-            onImport={importData}
-            onClear={clearAllData}
-            goal={goal}
-            onSetGoal={setGoal}
-          />
+          <>
+            <EquipmentSheet
+              bowProfiles={bowProfiles}
+              defaultBow={defaultBow}
+              equipmentLogs={equipmentLogs}
+              onAddBow={addBowProfile}
+              onUpdateBow={updateBowProfile}
+              onDeleteBow={deleteBowProfile}
+              onAddLog={addEquipmentLog}
+              onDeleteLog={deleteEquipmentLog}
+            />
+            <SettingsSheet
+              onExport={exportData}
+              onImport={importData}
+              onClear={clearAllData}
+              goal={goal}
+              onSetGoal={setGoal}
+              quickAddPresets={quickAddPresets}
+              onUpdatePresets={updateQuickAddPresets}
+              settings={settings}
+              onUpdateSettings={updateSettings}
+            />
+          </>
         }
       />
 
-      <main
-        className={`pt-14 pb-8 px-4 transition-all duration-500 ${
-          isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-        }`}
-      >
-        {/* Arrow Counter Section */}
+      <main className={`pt-14 pb-8 px-4 transition-all duration-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        {/* Arrow Counter */}
         <section className="max-w-md mx-auto">
           <ArrowCounter
             todayTotal={todayTotal}
@@ -93,11 +110,21 @@ function App() {
             onAdd={addArrows}
             onAddOne={addOneArrow}
             onRemoveOne={removeOneArrow}
+            onUndo={undo}
+            onRedo={redo}
+            canUndo={canUndo}
+            canRedo={canRedo}
             formatNumber={formatNumber}
+            bowProfiles={bowProfiles}
+            defaultBow={defaultBow}
+            quickAddPresets={quickAddPresets}
+            playThwack={playThwack}
+            playGoal={playGoal}
+            soundEnabled={settings.soundEnabled}
           />
         </section>
 
-        {/* Tabs Section */}
+        {/* Tabs */}
         <section className="max-w-md mx-auto mt-4">
           <Tabs defaultValue="today" className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-4">
@@ -110,6 +137,7 @@ function App() {
             <TabsContent value="today" className="space-y-4">
               <SessionList
                 sessions={todaySessions}
+                bowProfiles={bowProfiles}
                 formatNumber={formatNumber}
                 onDelete={deleteSession}
                 onEdit={editSession}
@@ -124,7 +152,17 @@ function App() {
                 allTimeTotal={allTimeTotal}
                 bestDay={bestDay}
                 averagePerSession={averagePerSession}
+                currentStreak={currentStreak}
+                longestStreak={longestStreak}
                 formatNumber={formatNumber}
+              />
+              <Charts sessions={[...history.flatMap(h => h.sessions)]} formatNumber={formatNumber} />
+              <AchievementPanel
+                achievements={achievements}
+                totalArrows={allTimeTotal}
+                todayArrows={todayTotal}
+                streak={currentStreak}
+                sessions={[...history.flatMap(h => h.sessions)].length}
               />
             </TabsContent>
 
@@ -133,14 +171,12 @@ function App() {
             </TabsContent>
 
             <TabsContent value="map" className="space-y-4">
-              <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm">
                 <h2 className="text-lg font-semibold text-primary mb-2">Shooting Locations</h2>
                 {locatedSessions.length > 0 ? (
                   <LocationMap mode="viewer" sessions={locatedSessions} height="300px" />
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No locations recorded yet. Add a location when logging arrows!
-                  </p>
+                  <p className="text-sm text-muted-foreground text-center py-8">No locations recorded yet. Add a location when logging arrows!</p>
                 )}
               </div>
             </TabsContent>
