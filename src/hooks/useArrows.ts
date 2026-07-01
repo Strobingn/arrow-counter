@@ -56,7 +56,9 @@ export function useArrows() {
   const [equipmentLogs, setEquipmentLogs] = useState<EquipmentLog[]>(() => loadJSON<EquipmentLog[]>(LOGS_KEY, []));
   const [achievements, setAchievements] = useState<Achievement[]>(() => loadJSON<Achievement[]>(ACHIEVEMENTS_KEY, DEFAULT_ACHIEVEMENTS.map(a => ({ ...a }))));
   const [quickAddPresets, setQuickAddPresets] = useState<number[]>(() => loadJSON<number[]>(PRESETS_KEY, DEFAULT_PRESETS));
-  const [settings, setSettings] = useState(() => loadJSON(SETTINGS_KEY, { soundEnabled: true, hapticEnabled: true, distanceUnit: 'yards', targetFace: '40cm' }));
+  const [settings, setSettings] = useState<{ soundEnabled: boolean; hapticEnabled: boolean; distanceUnit: 'yards' | 'meters'; targetFace: string }>(
+    () => loadJSON(SETTINGS_KEY, { soundEnabled: true, hapticEnabled: true, distanceUnit: 'yards', targetFace: '40cm' })
+  );
   const [undoStack, setUndoStack] = useState<ArrowSession[][]>([]);
   const [redoStack, setRedoStack] = useState<ArrowSession[][]>([]);
 
