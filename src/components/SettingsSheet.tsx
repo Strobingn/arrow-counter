@@ -20,7 +20,7 @@ interface SettingsSheetProps {
   quickAddPresets: number[];
   onUpdatePresets: (presets: number[]) => void;
   settings: { soundEnabled: boolean; hapticEnabled: boolean; distanceUnit: 'yards' | 'meters'; targetFace: string };
-  onUpdateSettings: (updates: Partial<SettingsSheetProps['settings']>) => void;
+  onUpdateSettings: (updates: Partial<{ soundEnabled: boolean; hapticEnabled: boolean; distanceUnit: 'yards' | 'meters'; targetFace: string }>) => void;
 }
 
 const CLIENT_ID_KEY = 'arrow-tracker-google-client-id';

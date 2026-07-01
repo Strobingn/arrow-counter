@@ -7,13 +7,12 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Crosshair, Plus, Trash2, Wrench, Star, Scroll } from 'lucide-react';
+import { Crosshair, Plus, Trash2, Wrench, Star } from 'lucide-react';
 import type { BowProfile, EquipmentLog } from '@/types';
 import { toast } from 'sonner';
 
 interface EquipmentSheetProps {
   bowProfiles: BowProfile[];
-  defaultBow?: BowProfile;
   equipmentLogs: EquipmentLog[];
   onAddBow: (bow: Omit<BowProfile, 'id' | 'createdAt'>) => string;
   onUpdateBow: (id: string, updates: Partial<BowProfile>) => void;
@@ -33,7 +32,7 @@ const LOG_TYPES = [
   { value: 'other', label: 'Other' },
 ] as const;
 
-export function EquipmentSheet({ bowProfiles, defaultBow, equipmentLogs, onAddBow, onUpdateBow, onDeleteBow, onAddLog, onDeleteLog }: EquipmentSheetProps) {
+export function EquipmentSheet({ bowProfiles, equipmentLogs, onAddBow, onUpdateBow, onDeleteBow, onAddLog, onDeleteLog }: EquipmentSheetProps) {
   const [showAddBow, setShowAddBow] = useState(false);
   const [newBow, setNewBow] = useState({ name: '', type: 'compound' as BowProfile['type'], drawWeight: 60, drawLength: 28, arrowWeight: 400, arrowSpine: '340', arrowLength: 28, fletching: 'Blazer Vanes', notes: '', isDefault: false });
   const [logBowId, setLogBowId] = useState('');

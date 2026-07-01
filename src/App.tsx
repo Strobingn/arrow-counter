@@ -77,7 +77,6 @@ function App() {
           <>
             <EquipmentSheet
               bowProfiles={bowProfiles}
-              defaultBow={defaultBow}
               equipmentLogs={equipmentLogs}
               onAddBow={addBowProfile}
               onUpdateBow={updateBowProfile}

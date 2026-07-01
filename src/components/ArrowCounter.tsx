@@ -134,7 +134,7 @@ export function ArrowCounter({
   };
   const saveEnd = () => {
     if (currentEndArrows.every(a => a === null)) return;
-    setEndScores(prev => [...prev, { id: Date.now().toString(36), arrows: [...currentEndArrows] }]);
+    setEndScores(prev => [...prev, { id: Date.now().toString(36), arrows: [...currentEndArrows] as EndScore['arrows'] }]);
     setCurrentEndArrows([null, null, null, null, null, null]);
   };
   const clearEnd = () => setCurrentEndArrows([null, null, null, null, null, null]);

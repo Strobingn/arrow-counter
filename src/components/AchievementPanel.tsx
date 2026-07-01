@@ -1,11 +1,11 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Target, Crosshair, Flame, Trophy, Crown, Star, Zap, Calendar, CalendarCheck, Award, Timer, Repeat, Medal, Bullseye, Lock, Sparkles } from 'lucide-react';
+import { Target, Crosshair, Flame, Trophy, Crown, Star, Zap, Calendar, CalendarCheck, Award, Timer, Repeat, Medal, Lock } from 'lucide-react';
 import type { Achievement } from '@/types';
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  Target, Crosshair, Flame, Trophy, Crown, Star, Zap, Calendar, CalendarCheck, Award, Timer, Repeat, Medal, Bullseye,
+  Target, Crosshair, Flame, Trophy, Crown, Star, Zap, Calendar, CalendarCheck, Award, Timer, Repeat, Medal,
 };
 
 interface AchievementPanelProps {
@@ -58,7 +58,6 @@ export function AchievementPanel({ achievements, totalArrows, todayArrows, strea
 
       <div className="space-y-2">
         {locked.slice(0, 5).map(a => {
-          const Icon = ICON_MAP[a.icon] || Star;
           const progress = getProgress(a);
           return (
             <div key={a.id} className="flex items-center gap-2">

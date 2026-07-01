@@ -25,7 +25,7 @@ const DEFAULT_ACHIEVEMENTS: Achievement[] = [
   { id: 'ten_sessions', title: 'Getting Started', description: 'Complete 10 shooting sessions', icon: 'Timer', condition: 'sessions_total', threshold: 10 },
   { id: 'fifty_sessions', title: 'Regular', description: 'Complete 50 shooting sessions', icon: 'Repeat', condition: 'sessions_total', threshold: 50 },
   { id: 'hundred_sessions', title: 'Dedicated', description: 'Complete 100 shooting sessions', icon: 'Medal', condition: 'sessions_total', threshold: 100 },
-  { id: 'perfect_end', title: 'Perfect End', description: 'Score all Xs in an end', icon: 'Bullseye', condition: 'score_perfect_end', threshold: 1 },
+  { id: 'perfect_end', title: 'Perfect End', description: 'Score all Xs in an end', icon: 'Target', condition: 'score_perfect_end', threshold: 1 },
 ];
 
 function generateId(): string {

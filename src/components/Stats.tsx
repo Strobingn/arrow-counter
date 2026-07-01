@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { Flame, TrendingUp } from 'lucide-react';
+import { Flame } from 'lucide-react';
 
 interface StatCardProps {
   label: string;
