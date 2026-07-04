@@ -1,12 +1,11 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, Upload, X, Plus, Minus, Target, Crosshair, Ruler, Wind, TrendingDown, MoveHorizontal, MoveVertical, Loader2, Zap, CircleDot, Trash2, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import { Camera, Upload, X, Target, Crosshair, Ruler, MoveHorizontal, MoveVertical, Loader2, Zap, Trash2, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
-import { useArrowAI, type GroupAnalysis, type DetectedArrow } from '@/hooks/useArrowAI';
+import { useArrowAI, type GroupAnalysis } from '@/hooks/useArrowAI';
 import { toast } from 'sonner';
 
 interface ArrowAIAnalyzerProps {
@@ -15,16 +14,15 @@ interface ArrowAIAnalyzerProps {
 }
 
 export function ArrowAIAnalyzer({ targetDistance, onSaveAnalysis }: ArrowAIAnalyzerProps) {
-  const { detectArrows, isAnalyzing, progress, canvasRef } = useArrowAI();
+  const { detectArrows, isAnalyzing, progress } = useArrowAI();
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<GroupAnalysis | null>(null);
-  const [calibratedDiameter, setCalibratedDiameter] = useState(40); // cm
+  const calibratedDiameter = 40; // cm
   const [isCalibrating, setIsCalibrating] = useState(false);
   const [calibrationPoints, setCalibrationPoints] = useState<Array<{x: number; y: number}>>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [manualArrows, setManualArrows] = useState<Array<{x: number; y: number}>>([]);
   const [selectedArrow, setSelectedArrow] = useState<string | null>(null);
-  const [confidenceThreshold, setConfidenceThreshold] = useState(0.3);
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
