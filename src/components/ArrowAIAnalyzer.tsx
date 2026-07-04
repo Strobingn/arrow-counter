@@ -219,7 +219,7 @@ export function ArrowAIAnalyzer({ targetDistance, onSaveAnalysis }: ArrowAIAnaly
           {analysis && (
             <div
               className="absolute w-4 h-4 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-              style={{ left: `${analysis.groupCenter.x * 100}%`, top: `${analysis.groupCenter.y * 100}%` }}}
+              style={{ left: `${analysis.groupCenter.x * 100}%`, top: `${analysis.groupCenter.y * 100}%` }}
             >
               <Crosshair className="w-4 h-4 text-primary/60" />
             </div>
