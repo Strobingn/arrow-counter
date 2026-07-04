@@ -3,9 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MoveRight, Target, ArrowDownToLine, Layers, Plus, Trash2, RotateCcw } from 'lucide-react';
+import { MoveRight, Target, ArrowDownToLine, Layers, Plus, Trash2 } from 'lucide-react';
 import type { ArrowSession } from '@/types';
 import { toast } from 'sonner';
 
