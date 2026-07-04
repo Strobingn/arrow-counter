@@ -9,8 +9,11 @@ import { SettingsSheet } from '@/components/SettingsSheet';
 import { EquipmentSheet } from '@/components/EquipmentSheet';
 import { Charts } from '@/components/Charts';
 import { AchievementPanel } from '@/components/AchievementPanel';
+import { ArrowAIAnalyzer } from '@/components/ArrowAIAnalyzer';
+import { TuningTools } from '@/components/TuningTools';
 import { useArrows } from '@/hooks/useArrows';
 import { useAudio } from '@/hooks/useAudio';
+import { Target } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
@@ -66,6 +69,9 @@ function App() {
     setGoalState(clamped);
     localStorage.setItem(GOAL_STORAGE_KEY, String(clamped));
   };
+
+  // Target distance for AI analyzer
+  const [aiTargetDistance, setAiTargetDistance] = useState(20);
 
   useEffect(() => { setIsLoaded(true); }, []);
 
@@ -126,9 +132,10 @@ function App() {
         {/* Tabs */}
         <section className="max-w-md mx-auto mt-4">
           <Tabs defaultValue="today" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsList className="grid w-full grid-cols-5 mb-4">
               <TabsTrigger value="today">Today</TabsTrigger>
               <TabsTrigger value="stats">Stats</TabsTrigger>
+              <TabsTrigger value="ai">AI & Tools</TabsTrigger>
               <TabsTrigger value="history">History</TabsTrigger>
               <TabsTrigger value="map">Map</TabsTrigger>
             </TabsList>
@@ -163,6 +170,22 @@ function App() {
                 streak={currentStreak}
                 sessions={[...history.flatMap(h => h.sessions)].length}
               />
+            </TabsContent>
+
+            <TabsContent value="ai" className="space-y-4">
+              {/* Target distance selector */}
+              <div className="bg-white dark:bg-card rounded-2xl p-3 shadow-sm flex items-center gap-3">
+                <Target className="w-4 h-4 text-primary shrink-0" />
+                <span className="text-sm">Target distance:</span>
+                <input
+                  type="range" min={5} max={100} step={5} value={aiTargetDistance}
+                  onChange={e => setAiTargetDistance(Number(e.target.value))}
+                  className="flex-1 accent-primary"
+                />
+                <span className="text-sm font-bold w-12 text-right">{aiTargetDistance}yd</span>
+              </div>
+              <ArrowAIAnalyzer targetDistance={aiTargetDistance} />
+              <TuningTools sessions={todaySessions} />
             </TabsContent>
 
             <TabsContent value="history" className="space-y-4">
