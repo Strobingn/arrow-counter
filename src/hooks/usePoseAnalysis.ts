@@ -4,7 +4,7 @@
  * Caches model after first load.
  */
 
-import { useRef, useCallback } from 'react';
+// TF.js loaded dynamically from CDN at runtime
 
 export interface PoseKeypoint {
   name: string;
@@ -123,14 +123,8 @@ function analyzePoses(poses: FramePose[]): { scores: FormScore; issues: FormIssu
   const strengths: string[] = [];
 
   // Extract key joint tracks
-  const rightWristX = poses.map((p) => getKP(p, 'right_wrist')?.x ?? null);
   const rightWristY = poses.map((p) => getKP(p, 'right_wrist')?.y ?? null);
-  const leftWristX = poses.map((p) => getKP(p, 'left_wrist')?.x ?? null);
   const leftWristY = poses.map((p) => getKP(p, 'left_wrist')?.y ?? null);
-  const rightShoulderY = poses.map((p) => getKP(p, 'right_shoulder')?.y ?? null);
-  const leftShoulderY = poses.map((p) => getKP(p, 'left_shoulder')?.y ?? null);
-  const rightElbowY = poses.map((p) => getKP(p, 'right_elbow')?.y ?? null);
-  const leftElbowY = poses.map((p) => getKP(p, 'left_elbow')?.y ?? null);
   const noseY = poses.map((p) => getKP(p, 'nose')?.y ?? null);
 
   // Detect phases from wrist motion
@@ -138,11 +132,10 @@ function analyzePoses(poses: FramePose[]): { scores: FormScore; issues: FormIssu
   const motion = computeMotion(drawWristY);
   const phases = detectPhasesFromMotion(motion);
 
-  // Find anchor phase frames
+  // Find key phases
   const anchorPhase = phases.find((p) => p.phase === 'Anchor');
   const releasePhase = phases.find((p) => p.phase === 'Release');
   const followThroughPhase = phases.find((p) => p.phase === 'Follow-Through');
-  const drawPhase = phases.find((p) => p.phase === 'Draw');
 
   // ---- ANCHOR STABILITY (0-25) ----
   let anchorStability = 10;

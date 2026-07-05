@@ -105,9 +105,6 @@ export function ArrowAIAnalyzer({ targetDistance, onSaveAnalysis }: ArrowAIAnaly
     const img = imageRef.current;
     if (!viewer || !img) return null;
     const rect = viewer.getBoundingClientRect();
-    const imgRect = img.getBoundingClientRect();
-    const scaleX = img.naturalWidth / imgRect.width;
-    const scaleY = img.naturalHeight / imgRect.height;
     const displayX = (clientX - rect.left - pan.x) / zoom;
     const displayY = (clientY - rect.top - pan.y) / zoom;
     const x = displayX / rect.width;
