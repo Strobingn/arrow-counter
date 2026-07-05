@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -241,7 +240,7 @@ const DEFAULT_FOC_PARTS: FOCMeasurement[] = [
 
 export function FOCCalculator() {
   const [parts, setParts] = useState<FOCMeasurement[]>(DEFAULT_FOC_PARTS.map(p => ({ ...p })));
-  const [shaftLength, setShaftLength] = useState(28.5);
+  const [shaftLength] = useState(28.5);
 
   const totalWeight = parts.reduce((s, p) => s + p.weight, 0);
 
