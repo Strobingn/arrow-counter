@@ -3,9 +3,10 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MoveRight, Target, ArrowDownToLine, Layers, Plus, Trash2, Ruler, TrendingDown, Gauge, AlertTriangle } from 'lucide-react';
+import { MoveRight, Target, ArrowDownToLine, Layers, Plus, Trash2, Ruler, TrendingDown, Gauge, AlertTriangle, Crosshair, FileText, SlidersHorizontal } from 'lucide-react';
 import type { ArrowSession } from '@/types';
 import { toast } from 'sonner';
+import { DynamicSpineCalculator, PaperTuningGuide, FOCCalculator, NockTuningWizard, CenterShotWizard, BroadheadTuningTracker } from './AdvancedTuning';
 
 // ============ WALK-BACK TUNE ============
 // Detects if center shot is off by shooting at increasing distances
@@ -556,10 +557,11 @@ export function TuningTools({ sessions }: { sessions: ArrowSession[] }) {
           <TabsTrigger value="drift" className="text-xs"><ArrowDownToLine className="w-3 h-3 mr-1" />Drift</TabsTrigger>
         </TabsList>
 
-        <TabsList className="grid w-full grid-cols-3 h-8 mt-1">
+        <TabsList className="grid w-full grid-cols-4 h-8 mt-1">
           <TabsTrigger value="sighttape" className="text-xs"><Ruler className="w-3 h-3 mr-1" />Sight Tape</TabsTrigger>
           <TabsTrigger value="stringcreep" className="text-xs"><TrendingDown className="w-3 h-3 mr-1" />String Creep</TabsTrigger>
           <TabsTrigger value="ballistics" className="text-xs"><Gauge className="w-3 h-3 mr-1" />Ballistics</TabsTrigger>
+          <TabsTrigger value="advanced" className="text-xs"><AlertTriangle className="w-3 h-3 mr-1" />Advanced</TabsTrigger>
         </TabsList>
 
         <TabsContent value="walkback" className="mt-3">
@@ -585,7 +587,47 @@ export function TuningTools({ sessions }: { sessions: ArrowSession[] }) {
         <TabsContent value="ballistics" className="mt-3">
           <ArrowBallisticsCalculator />
         </TabsContent>
+
+        <TabsContent value="advanced" className="mt-3 space-y-4">
+          <AdvancedTuningSuite />
+        </TabsContent>
       </Tabs>
     </Card>
+  );
+}
+
+function AdvancedTuningSuite() {
+  return (
+    <Tabs defaultValue="spine">
+      <TabsList className="grid w-full grid-cols-3 h-8">
+        <TabsTrigger value="spine" className="text-xs"><Gauge className="w-3 h-3 mr-0.5" />Spine</TabsTrigger>
+        <TabsTrigger value="paper" className="text-xs"><FileText className="w-3 h-3 mr-0.5" />Paper</TabsTrigger>
+        <TabsTrigger value="foc" className="text-xs"><Target className="w-3 h-3 mr-0.5" />FOC</TabsTrigger>
+      </TabsList>
+      <TabsContent value="spine" className="mt-3">
+        <DynamicSpineCalculator />
+      </TabsContent>
+      <TabsContent value="paper" className="mt-3">
+        <PaperTuningGuide />
+      </TabsContent>
+      <TabsContent value="foc" className="mt-3">
+        <FOCCalculator />
+      </TabsContent>
+
+      <TabsList className="grid w-full grid-cols-3 h-8 mt-4">
+        <TabsTrigger value="nock" className="text-xs"><SlidersHorizontal className="w-3 h-3 mr-0.5" />Nock</TabsTrigger>
+        <TabsTrigger value="centershot" className="text-xs"><Crosshair className="w-3 h-3 mr-0.5" />C-Shot</TabsTrigger>
+        <TabsTrigger value="broadhead" className="text-xs"><AlertTriangle className="w-3 h-3 mr-0.5" />BH</TabsTrigger>
+      </TabsList>
+      <TabsContent value="nock" className="mt-3">
+        <NockTuningWizard />
+      </TabsContent>
+      <TabsContent value="centershot" className="mt-3">
+        <CenterShotWizard />
+      </TabsContent>
+      <TabsContent value="broadhead" className="mt-3">
+        <BroadheadTuningTracker />
+      </TabsContent>
+    </Tabs>
   );
 }
