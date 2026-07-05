@@ -13,7 +13,6 @@ import { ArrowAIAnalyzer } from '@/components/ArrowAIAnalyzer';
 import { TuningTools } from '@/components/TuningTools';
 import { CompetitionMode } from '@/components/CompetitionMode';
 import { VideoShotAnalysis } from '@/components/VideoShotAnalysis';
-import { useCompetition } from '@/hooks/useCompetition';
 import { useArrows } from '@/hooks/useArrows';
 import { useAudio } from '@/hooks/useAudio';
 import { Target } from 'lucide-react';
@@ -194,7 +193,7 @@ function App() {
             </TabsContent>
 
             <TabsContent value="video" className="space-y-4">
-              <VideoShotAnalysis bowProfiles={bowProfiles} />
+              <VideoShotAnalysis />
             </TabsContent>
 
             <TabsContent value="history" className="space-y-4">
