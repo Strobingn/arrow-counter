@@ -1,24 +1,21 @@
 import { useState, useRef, useCallback } from 'react';
+import { analyzeForm, type FormAnalysis, type ShotFrame } from './useFormAnalysis';
 
-export interface ShotFrame {
-  id: string;
-  timestamp: number;
-  imageData: string;
-  label?: string;
-}
+export type { FormAnalysis, ShotFrame };
 
 export interface ShotClip {
   id: string;
   date: string;
   duration: number;
   frames: ShotFrame[];
-  keyFrames: { phase: string; frameIndex: number }[];
+  phases: { name: string; frameIndex: number }[];
+  formAnalysis: FormAnalysis | null;
   notes: string;
   bowId?: string;
   distance?: number;
 }
 
-const STORAGE_KEY = 'arrow-video-clips';
+const STORAGE_KEY = 'arrow-video-clips-v2';
 
 function genId() {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
@@ -35,62 +32,6 @@ function loadClips(): ShotClip[] {
 
 function saveClips(c: ShotClip[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(c));
-}
-
-function detectPhases(frames: ShotFrame[]): { phase: string; frameIndex: number }[] {
-  if (frames.length < 6) return [];
-
-  const motions: number[] = [];
-  for (let i = 1; i < frames.length; i++) {
-    motions.push(estimateMotion(frames[i - 1].imageData, frames[i].imageData));
-  }
-
-  const avgMotion = motions.reduce((s, m) => s + m, 0) / motions.length;
-  const threshold = { low: avgMotion * 0.5, high: avgMotion * 2.5 };
-
-  const keyFrames: { phase: string; frameIndex: number }[] = [];
-  keyFrames.push({ phase: 'Setup', frameIndex: 0 });
-
-  for (let i = 0; i < motions.length; i++) {
-    if (motions[i] > threshold.high) {
-      keyFrames.push({ phase: 'Draw', frameIndex: i + 1 });
-      break;
-    }
-  }
-
-  let anchorFound = false;
-  for (let i = keyFrames[keyFrames.length - 1]?.frameIndex || 0; i < motions.length - 2; i++) {
-    if (motions[i] < threshold.low && motions[i + 1] < threshold.low && !anchorFound) {
-      keyFrames.push({ phase: 'Anchor', frameIndex: i + 1 });
-      anchorFound = true;
-      break;
-    }
-  }
-
-  let releaseIdx = -1;
-  let releaseMotion = 0;
-  const startSearch = anchorFound
-    ? keyFrames.find((k) => k.phase === 'Anchor')!.frameIndex
-    : Math.floor(frames.length / 2);
-  for (let i = startSearch; i < motions.length; i++) {
-    if (motions[i] > releaseMotion) {
-      releaseMotion = motions[i];
-      releaseIdx = i + 1;
-    }
-  }
-  if (releaseIdx > 0 && releaseMotion > threshold.high * 0.8) {
-    keyFrames.push({
-      phase: 'Release',
-      frameIndex: Math.min(releaseIdx, frames.length - 1),
-    });
-  }
-
-  keyFrames.push({ phase: 'Follow-Through', frameIndex: frames.length - 1 });
-  return keyFrames;
-}
-
-function estimateMotion(_img1: string, _img2: string): number {
-  return 0.5;
 }
 
 function getSupportedMimeType(): string {
@@ -110,6 +51,8 @@ export function useVideoAnalysis() {
   const [clips, setClips] = useState<ShotClip[]>(loadClips);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [lastError, setLastError] = useState<string>('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -137,7 +80,6 @@ export function useVideoAnalysis() {
   const startRecording = useCallback(async (): Promise<boolean> => {
     setLastError('');
 
-    // Check for getUserMedia support
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setLastError('Camera API not supported on this device/browser.');
       return false;
@@ -157,7 +99,6 @@ export function useVideoAnalysis() {
       streamRef.current = mediaStream;
       setStream(mediaStream);
 
-      // Try to find a supported MIME type
       const mimeType = getSupportedMimeType();
       const recorder = mimeType
         ? new MediaRecorder(mediaStream, { mimeType })
@@ -202,7 +143,7 @@ export function useVideoAnalysis() {
       } else if (message.includes('OverconstrainedError')) {
         friendly = 'Camera does not support requested resolution. Try a different device.';
       } else if (message.includes('SecurityError')) {
-        friendly = 'Camera blocked by security policy. For Android apps, ensure CAMERA permission is granted in Settings > Apps > Arrow Counter > Permissions.';
+        friendly = 'Camera blocked by security policy. Ensure CAMERA permission is granted in Settings > Apps > Arrow Counter > Permissions.';
       }
 
       setLastError(friendly);
@@ -227,10 +168,10 @@ export function useVideoAnalysis() {
           const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'video/webm' });
           const url = URL.createObjectURL(blob);
 
-          const frames = await extractFrames(url, 15);
+          // Extract frames
+          const frames = await extractFrames(url, 10);
           URL.revokeObjectURL(url);
 
-          // Stop camera stream after frames extracted
           stopCamera();
 
           if (frames.length < 3) {
@@ -238,14 +179,32 @@ export function useVideoAnalysis() {
             return;
           }
 
-          const keyFrames = detectPhases(frames);
+          // Run REAL ML form analysis
+          setIsAnalyzing(true);
+          setAnalysisProgress(10);
+
+          let formAnalysis: FormAnalysis | null = null;
+          try {
+            formAnalysis = await analyzeForm(frames);
+          } catch {
+            formAnalysis = null;
+          }
+
+          setIsAnalyzing(false);
+          setAnalysisProgress(100);
+
+          const phases = formAnalysis?.phases.map((p) => ({
+            name: p.name,
+            frameIndex: p.startFrame,
+          })) || [{ name: 'Shot', frameIndex: 0 }];
 
           const clip: ShotClip = {
             id: genId(),
             date: new Date().toISOString().split('T')[0],
             duration: recordingTime,
             frames,
-            keyFrames,
+            phases,
+            formAnalysis,
             notes: options?.notes || '',
             bowId: options?.bowId,
             distance: options?.distance,
@@ -276,6 +235,8 @@ export function useVideoAnalysis() {
   return {
     clips,
     isRecording,
+    isAnalyzing,
+    analysisProgress,
     recordingTime,
     stream,
     lastError,
@@ -298,7 +259,7 @@ async function extractFrames(videoUrl: string, fps: number): Promise<ShotFrame[]
         resolve([]);
         return;
       }
-      const totalFrames = Math.min(Math.floor(duration * fps), 120);
+      const totalFrames = Math.min(Math.floor(duration * fps), 90); // cap at 90 frames
       const interval = duration / totalFrames;
 
       const canvas = document.createElement('canvas');
@@ -308,7 +269,7 @@ async function extractFrames(videoUrl: string, fps: number): Promise<ShotFrame[]
         return;
       }
 
-      const scale = 0.4;
+      const scale = 0.35;
       canvas.width = video.videoWidth * scale;
       canvas.height = video.videoHeight * scale;
 
@@ -326,7 +287,7 @@ async function extractFrames(videoUrl: string, fps: number): Promise<ShotFrame[]
           frames.push({
             id: genId(),
             timestamp: Math.round(current * interval * 1000),
-            imageData: canvas.toDataURL('image/jpeg', 0.7),
+            imageData: canvas.toDataURL('image/jpeg', 0.65),
           });
           current++;
           capture();
