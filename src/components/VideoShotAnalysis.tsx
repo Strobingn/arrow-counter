@@ -8,7 +8,6 @@ import { Progress } from '@/components/ui/progress';
 import { Video, Play, Pause, Square, SkipBack, SkipForward, Camera, Trash2, ChevronLeft, ChevronRight, Maximize, Layers, Clock } from 'lucide-react';
 import { useVideoAnalysis } from '@/hooks/useVideoAnalysis';
 import { toast } from 'sonner';
-import type { BowProfile } from '@/types';
 
 interface VideoShotAnalysisProps {
   
@@ -23,7 +22,7 @@ const PHASE_COLORS: Record<string, string> = {
   'Follow-Through': '#8b5cf6',
 };
 
-export function VideoShotAnalysis({ bowProfiles }: VideoShotAnalysisProps) {
+export function VideoShotAnalysis({ }: VideoShotAnalysisProps) {
   const { clips, isRecording, recordingTime, startRecording, stopRecording, deleteClip } = useVideoAnalysis();
   const [activeClipId, setActiveClipId] = useState<string | null>(null);
   const [compareClipId, setCompareClipId] = useState<string | null>(null);
