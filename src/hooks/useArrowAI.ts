@@ -77,69 +77,148 @@ function findTargetCenter(data: Uint8ClampedArray, w: number, h: number): { x: n
   return { x: bestX / w, y: bestY / h };
 }
 
-function findColorBlobs(data: Uint8ClampedArray, w: number, h: number): Array<{ x: number; y: number; radius: number; confidence: number }> {
-  const blobs: Array<{ x: number; y: number; radius: number; confidence: number }> = [];
+// HSV color conversion for better fluorescent nock detection
+function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+    else if (max === g) h = ((b - r) / d + 2) / 6;
+    else h = ((r - g) / d + 4) / 6;
+  }
+  const s = max === 0 ? 0 : d / max;
+  const v = max;
+  return [h, s, v];
+}
+
+// Check if pixel is a fluorescent nock color (orange, yellow, green, pink, white)
+function isNockColor(r: number, g: number, b: number): boolean {
+  const [h, s, v] = rgbToHsv(r, g, b);
+  // Bright yellow/orange: H 0.08-0.15, S 0.3+, V 0.7+
+  const isYellowOrange = h >= 0.08 && h <= 0.15 && s > 0.3 && v > 0.7;
+  // Bright green: H 0.25-0.4, S 0.3+, V 0.6+
+  const isGreen = h >= 0.25 && h <= 0.4 && s > 0.3 && v > 0.6;
+  // Hot pink/red: H 0.85-1.0 or 0-0.05, S 0.4+, V 0.6+
+  const isPinkRed = (h >= 0.85 || h <= 0.05) && s > 0.4 && v > 0.6;
+  // White nocks: S < 0.15, V > 0.85
+  const isWhite = s < 0.15 && v > 0.85;
+  return isYellowOrange || isGreen || isPinkRed || isWhite;
+}
+
+// Sub-pixel weighted centroid for maximum accuracy
+function subpixelCentroid(pixels: Array<{ x: number; y: number }>, data: Uint8ClampedArray, w: number): { x: number; y: number; brightness: number } {
+  let sumWX = 0, sumWY = 0, totalWeight = 0;
+  let totalBright = 0;
+  for (const p of pixels) {
+    const idx = (p.y * w + p.x) * 4;
+    const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+    const bright = (r + g + b) / 3;
+    const weight = bright + 50; // weight brighter pixels more
+    sumWX += p.x * weight;
+    sumWY += p.y * weight;
+    totalWeight += weight;
+    totalBright += bright;
+  }
+  return {
+    x: sumWX / totalWeight,
+    y: sumWY / totalWeight,
+    brightness: totalBright / pixels.length,
+  };
+}
+
+function findNockBlobs(data: Uint8ClampedArray, w: number, h: number): Array<{ x: number; y: number; radius: number; confidence: number; brightness: number }> {
+  const blobs: Array<{ x: number; y: number; radius: number; confidence: number; brightness: number }> = [];
   const visited = new Uint8Array(w * h);
 
-  for (let y = 0; y < h; y += 2) {
-    for (let x = 0; x < w; x += 2) {
+  // Step 1: Find bright nock-colored pixels
+  const nockMask = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
       const idx = (y * w + x) * 4;
-      if (visited[y * w + x]) continue;
+      if (isNockColor(data[idx], data[idx + 1], data[idx + 2])) {
+        nockMask[y * w + x] = 1;
+      }
+    }
+  }
 
-      const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-      const isFluorescent = (
-        (r > 180 && g > 160 && b < 100) ||
-        (r > 200 && g > 80 && g < 160 && b < 80) ||
-        (r > 200 && g > 160 && b > 120) ||
-        (r + g > 350 && b < 120)
-      );
-      if (!isFluorescent) continue;
+  // Step 2: Dilate mask slightly to connect nearby nock pixels
+  const dilated = new Uint8Array(w * h);
+  for (let y = 2; y < h - 2; y++) {
+    for (let x = 2; x < w - 2; x++) {
+      if (nockMask[y * w + x]) {
+        for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            dilated[(y + dy) * w + (x + dx)] = 1;
+          }
+        }
+      }
+    }
+  }
+
+  // Step 3: Connected component analysis with sub-pixel centroids
+  for (let y = 4; y < h - 4; y += 2) {
+    for (let x = 4; x < w - 4; x += 2) {
+      if (!dilated[y * w + x] || visited[y * w + x]) continue;
 
       const pixels: Array<{ x: number; y: number }> = [];
       const stack = [{ x, y }];
-      while (stack.length > 0 && pixels.length < 500) {
+      while (stack.length > 0 && pixels.length < 600) {
         const p = stack.pop()!;
         const pi = p.y * w + p.x;
-        if (visited[pi]) continue;
+        if (visited[pi] || !dilated[pi]) continue;
         visited[pi] = 1;
-
-        const pIdx = pi * 4;
-        const pr = data[pIdx], pg = data[pIdx + 1], pb = data[pIdx + 2];
-        const pFluor = (pr > 160 && pg > 140 && pb < 120) || (pr + pg > 300 && pb < 130);
-        if (!pFluor) continue;
-
         pixels.push(p);
-        if (p.x > 0) stack.push({ x: p.x - 1, y: p.y });
-        if (p.x < w - 1) stack.push({ x: p.x + 1, y: p.y });
-        if (p.y > 0) stack.push({ x: p.x, y: p.y - 1 });
-        if (p.y < h - 1) stack.push({ x: p.x, y: p.y + 1 });
+        if (p.x > 4) stack.push({ x: p.x - 1, y: p.y });
+        if (p.x < w - 5) stack.push({ x: p.x + 1, y: p.y });
+        if (p.y > 4) stack.push({ x: p.x, y: p.y - 1 });
+        if (p.y < h - 5) stack.push({ x: p.x, y: p.y + 1 });
       }
 
-      if (pixels.length < 8 || pixels.length > 400) continue;
+      // Nocks are small: 5-200 pixels depending on image resolution
+      if (pixels.length < 5 || pixels.length > 500) continue;
 
-      let sumX = 0, sumY = 0;
-      for (const p of pixels) { sumX += p.x; sumY += p.y; }
-      const bx = sumX / pixels.length;
-      const by = sumY / pixels.length;
+      const centroid = subpixelCentroid(pixels, data, w);
+      const bx = centroid.x;
+      const by = centroid.y;
 
+      if (bx < 20 || bx > w - 20 || by < 20 || by > h - 20) continue;
+
+      // Calculate radius and circularity
       let maxR = 0;
       for (const p of pixels) {
         const d = Math.sqrt((p.x - bx) ** 2 + (p.y - by) ** 2);
         if (d > maxR) maxR = d;
       }
 
-      if (bx < 20 || bx > w - 20 || by < 20 || by > h - 20) continue;
-
       const area = pixels.length;
       const circularity = area / (Math.PI * maxR * maxR + 1);
-      const confidence = Math.min(1, (area / 80) * circularity * 1.5);
 
-      if (confidence > 0.2) {
-        blobs.push({ x: bx / w, y: by / h, radius: maxR / Math.max(w, h), confidence });
+      // Confidence based on: circularity (nocks are round), brightness, size
+      const sizeScore = area < 30 ? area / 30 : area > 150 ? 150 / area : 1;
+      const confidence = Math.min(1, circularity * sizeScore * 1.2);
+
+      if (confidence > 0.15) {
+        blobs.push({ x: bx / w, y: by / h, radius: maxR / Math.max(w, h), confidence, brightness: centroid.brightness });
       }
     }
   }
-  return blobs;
+
+  // Step 4: Non-maximum suppression - remove duplicates that are too close
+  blobs.sort((a, b) => b.confidence - a.confidence);
+  const suppressed: typeof blobs = [];
+  for (const b of blobs) {
+    let tooClose = false;
+    for (const s of suppressed) {
+      const dx = (b.x - s.x) * w;
+      const dy = (b.y - s.y) * h;
+      if (Math.sqrt(dx * dx + dy * dy) < 15) { tooClose = true; break; }
+    }
+    if (!tooClose) suppressed.push(b);
+  }
+
+  return suppressed.slice(0, 12);
 }
 
 function findDarkHoles(data: Uint8ClampedArray, w: number, h: number): Array<{ x: number; y: number; radius: number; confidence: number }> {
@@ -213,32 +292,46 @@ function findDarkHoles(data: Uint8ClampedArray, w: number, h: number): Array<{ x
 }
 
 function mergeDetections(
-  colorBlobs: Array<{ x: number; y: number; radius: number; confidence: number }>,
+  nockBlobs: Array<{ x: number; y: number; radius: number; confidence: number; brightness?: number }>,
   darkBlobs: Array<{ x: number; y: number; radius: number; confidence: number }>,
 ): DetectedArrow[] {
-  const all = [...colorBlobs, ...darkBlobs];
   const merged: DetectedArrow[] = [];
-  const used = new Set<number>();
+  const usedDark = new Set<number>();
 
-  for (let i = 0; i < all.length; i++) {
-    if (used.has(i)) continue;
-    let best = all[i];
-    used.add(i);
-
-    for (let j = i + 1; j < all.length; j++) {
-      if (used.has(j)) continue;
-      const d = Math.sqrt((best.x - all[j].x) ** 2 + (best.y - all[j].y) ** 2);
-      if (d < 0.04) {
-        used.add(j);
-        if (all[j].confidence > best.confidence) best = all[j];
+  // For each nock blob, check if there's a nearby dark blob (arrow hole behind nock)
+  // If so, boost confidence
+  for (const nb of nockBlobs) {
+    let bestConf = nb.confidence;
+    for (let j = 0; j < darkBlobs.length; j++) {
+      if (usedDark.has(j)) continue;
+      const d = Math.sqrt((nb.x - darkBlobs[j].x) ** 2 + (nb.y - darkBlobs[j].y) ** 2);
+      if (d < 0.03) {
+        usedDark.add(j);
+        bestConf = Math.min(1, bestConf + 0.2); // boost for dark hole behind nock
       }
     }
-
-    merged.push({ id: generateId(), x: best.x, y: best.y, radius: best.radius, confidence: best.confidence });
+    merged.push({ id: generateId(), x: nb.x, y: nb.y, radius: nb.radius, confidence: bestConf });
   }
 
+  // Add remaining dark blobs that weren't matched to nocks
+  for (let j = 0; j < darkBlobs.length; j++) {
+    if (usedDark.has(j)) continue;
+    merged.push({ id: generateId(), x: darkBlobs[j].x, y: darkBlobs[j].y, radius: darkBlobs[j].radius, confidence: darkBlobs[j].confidence * 0.7 });
+  }
+
+  // NMS - remove duplicates too close together
   merged.sort((a, b) => b.confidence - a.confidence);
-  return merged.slice(0, 12);
+  const result: DetectedArrow[] = [];
+  for (const m of merged) {
+    let tooClose = false;
+    for (const r of result) {
+      const d = Math.sqrt((m.x - r.x) ** 2 + (m.y - r.y) ** 2);
+      if (d < 0.025) { tooClose = true; break; }
+    }
+    if (!tooClose) result.push(m);
+  }
+
+  return result.slice(0, 12);
 }
 
 function scoreArrows(arrows: DetectedArrow[], center: { x: number; y: number }): DetectedArrow[] {
@@ -336,13 +429,13 @@ export function useArrowAI() {
           const center = findTargetCenter(data, w, h);
           setProgress(25);
 
-          const colorBlobs = findColorBlobs(data, w, h);
+          const nockBlobs = findNockBlobs(data, w, h);
           setProgress(50);
 
           const darkBlobs = findDarkHoles(data, w, h);
           setProgress(70);
 
-          const merged = mergeDetections(colorBlobs, darkBlobs);
+          const merged = mergeDetections(nockBlobs, darkBlobs);
           setProgress(85);
 
           const scored = scoreArrows(merged, center);
