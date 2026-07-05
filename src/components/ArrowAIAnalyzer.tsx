@@ -1,19 +1,22 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, Upload, X, Target, Crosshair, Ruler, MoveHorizontal, MoveVertical, Loader2, Zap, Trash2, RotateCcw, ChevronDown, ChevronUp, ZoomIn, ZoomOut, Hand, MousePointer } from 'lucide-react';
+import { Camera, Upload, X, Target, Crosshair, Ruler, MoveHorizontal, MoveVertical, Loader2, Zap, Trash2, RotateCcw, ChevronDown, ChevronUp, ZoomIn, ZoomOut, Hand, MousePointer, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useArrowAI, type GroupAnalysis } from '@/hooks/useArrowAI';
+import type { ArrowSession } from '@/types';
 import { toast } from 'sonner';
 
 interface ArrowAIAnalyzerProps {
   targetDistance: number;
-  onSaveAnalysis?: (analysis: GroupAnalysis) => void;
+  sessions: ArrowSession[];
+  addMedia: (blob: Blob, type: 'video' | 'image', opts?: { sessionId?: string; label?: string; thumbnail?: string }) => Promise<{ id: string; type: 'video' | 'image'; size: number; thumbnail?: string; sessionId?: string; date: string; label: string; createdAt: number; url: string }>;
+  attachMediaToSession: (sessionId: string, media: { id: string; type: 'video' | 'image'; label: string }) => void;
 }
 
-export function ArrowAIAnalyzer({ targetDistance, onSaveAnalysis }: ArrowAIAnalyzerProps) {
+export function ArrowAIAnalyzer({ targetDistance, sessions, addMedia, attachMediaToSession }: ArrowAIAnalyzerProps) {
   const { detectArrows, isAnalyzing, progress } = useArrowAI();
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<GroupAnalysis | null>(null);
@@ -436,7 +439,28 @@ export function ArrowAIAnalyzer({ targetDistance, onSaveAnalysis }: ArrowAIAnaly
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={undoManual} className="text-xs flex-1"><RotateCcw className="w-3 h-3 mr-1" /> Undo Manual</Button>
             <Button size="sm" variant="outline" onClick={() => setIsCalibrating(!isCalibrating)} className="text-xs flex-1"><Ruler className="w-3 h-3 mr-1" /> {isCalibrating ? 'Done' : 'Re-Cal'}</Button>
-            {onSaveAnalysis && <Button size="sm" onClick={() => { onSaveAnalysis(analysis); toast.success('Saved!'); }} className="text-xs flex-1">Save</Button>}
+            {imageSrc && (
+              <Button size="sm" variant="default" onClick={async () => {
+                if (!imageSrc) return;
+                try {
+                  // Convert data URL to blob
+                  const res = await fetch(imageSrc);
+                  const blob = await res.blob();
+                  const meta = await addMedia(blob, 'image', { label: `Target @ ${targetDistance}yd`, thumbnail: imageSrc });
+                  toast.success('Target image saved!');
+                  // Show link options
+                  if (sessions.length > 0) {
+                    const lastSession = sessions[sessions.length - 1];
+                    attachMediaToSession(lastSession.id, { id: meta.id, type: 'image', label: 'Target photo' });
+                    toast.success(`Linked to session: ${lastSession.date}`);
+                  }
+                } catch {
+                  toast.error('Failed to save image');
+                }
+              }} className="text-xs flex-1">
+                <Save className="w-3 h-3 mr-1" />Save Target
+              </Button>
+            )}
           </div>
         </div>
       )}

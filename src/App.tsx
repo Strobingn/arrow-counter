@@ -199,7 +199,12 @@ function App() {
                   onChange={e => setAiTargetDistance(Number(e.target.value))} className="flex-1 accent-primary" />
                 <span className="text-sm font-bold w-12 text-right">{aiTargetDistance}yd</span>
               </div>
-              <ArrowAIAnalyzer targetDistance={aiTargetDistance} />
+              <ArrowAIAnalyzer
+                targetDistance={aiTargetDistance}
+                sessions={sessions}
+                addMedia={addMediaStore}
+                attachMediaToSession={attachMediaToSession}
+              />
               <TuningTools sessions={todaySessions} />
             </TabsContent>
 
