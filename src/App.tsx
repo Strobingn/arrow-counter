@@ -4,13 +4,16 @@ import { ArrowCounter } from '@/components/ArrowCounter';
 import { SessionList } from '@/components/SessionList';
 import { Stats } from '@/components/Stats';
 import { History } from '@/components/History';
-import { LocationMap } from '@/components/LocationMap';
+
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { EquipmentSheet } from '@/components/EquipmentSheet';
 import { Charts } from '@/components/Charts';
 import { AchievementPanel } from '@/components/AchievementPanel';
 import { ArrowAIAnalyzer } from '@/components/ArrowAIAnalyzer';
 import { TuningTools } from '@/components/TuningTools';
+import { CompetitionMode } from '@/components/CompetitionMode';
+import { VideoShotAnalysis } from '@/components/VideoShotAnalysis';
+import { useCompetition } from '@/hooks/useCompetition';
 import { useArrows } from '@/hooks/useArrows';
 import { useAudio } from '@/hooks/useAudio';
 import { Target } from 'lucide-react';
@@ -26,7 +29,7 @@ function App() {
   const {
     todaySessions, todayTotal, weekTotal, monthTotal, allTimeTotal,
     bestDay, averagePerSession, currentStreak, longestStreak,
-    history, locatedSessions, bowProfiles, defaultBow, equipmentLogs,
+    history, bowProfiles, defaultBow, equipmentLogs,
     achievements, quickAddPresets, settings, canUndo, canRedo,
     addArrows, addOneArrow, removeOneArrow, deleteSession, editSession,
     undo, redo, addBowProfile, updateBowProfile, deleteBowProfile,
@@ -72,6 +75,9 @@ function App() {
 
   // Target distance for AI analyzer
   const [aiTargetDistance, setAiTargetDistance] = useState(20);
+
+  // Competition
+  const comp = useCompetition();
 
   useEffect(() => { setIsLoaded(true); }, []);
 
@@ -135,9 +141,9 @@ function App() {
             <TabsList className="grid w-full grid-cols-5 mb-4">
               <TabsTrigger value="today">Today</TabsTrigger>
               <TabsTrigger value="stats">Stats</TabsTrigger>
+              <TabsTrigger value="comp">Compete</TabsTrigger>
               <TabsTrigger value="ai">AI & Tools</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
-              <TabsTrigger value="map">Map</TabsTrigger>
+              <TabsTrigger value="video">Video</TabsTrigger>
             </TabsList>
 
             <TabsContent value="today" className="space-y-4">
@@ -172,35 +178,28 @@ function App() {
               />
             </TabsContent>
 
+            <TabsContent value="comp" className="space-y-4">
+              <CompetitionMode bowProfiles={bowProfiles} />
+            </TabsContent>
+
             <TabsContent value="ai" className="space-y-4">
-              {/* Target distance selector */}
               <div className="bg-white dark:bg-card rounded-2xl p-3 shadow-sm flex items-center gap-3">
                 <Target className="w-4 h-4 text-primary shrink-0" />
                 <span className="text-sm">Target distance:</span>
-                <input
-                  type="range" min={5} max={100} step={5} value={aiTargetDistance}
-                  onChange={e => setAiTargetDistance(Number(e.target.value))}
-                  className="flex-1 accent-primary"
-                />
+                <input type="range" min={5} max={100} step={5} value={aiTargetDistance}
+                  onChange={e => setAiTargetDistance(Number(e.target.value))} className="flex-1 accent-primary" />
                 <span className="text-sm font-bold w-12 text-right">{aiTargetDistance}yd</span>
               </div>
               <ArrowAIAnalyzer targetDistance={aiTargetDistance} />
               <TuningTools sessions={todaySessions} />
             </TabsContent>
 
-            <TabsContent value="history" className="space-y-4">
-              <History history={history} formatNumber={formatNumber} />
+            <TabsContent value="video" className="space-y-4">
+              <VideoShotAnalysis bowProfiles={bowProfiles} />
             </TabsContent>
 
-            <TabsContent value="map" className="space-y-4">
-              <div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm">
-                <h2 className="text-lg font-semibold text-primary mb-2">Shooting Locations</h2>
-                {locatedSessions.length > 0 ? (
-                  <LocationMap mode="viewer" sessions={locatedSessions} height="300px" />
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">No locations recorded yet. Add a location when logging arrows!</p>
-                )}
-              </div>
+            <TabsContent value="history" className="space-y-4">
+              <History history={history} formatNumber={formatNumber} />
             </TabsContent>
           </Tabs>
         </section>

@@ -3,9 +3,10 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MoveRight, Target, ArrowDownToLine, Layers, Plus, Trash2 } from 'lucide-react';
+import { MoveRight, Target, ArrowDownToLine, Layers, Plus, Trash2, Ruler, TrendingDown, Gauge, AlertTriangle } from 'lucide-react';
 import type { ArrowSession } from '@/types';
 import { toast } from 'sonner';
+import { useState, useMemo } from 'react';
 
 // ============ WALK-BACK TUNE ============
 // Detects if center shot is off by shooting at increasing distances
@@ -348,6 +349,199 @@ function GroupDriftTracker({ sessions }: { sessions: ArrowSession[] }) {
   );
 }
 
+// ============ SIGHT TAPE GENERATOR ============
+function SightTapeGenerator() {
+  const [marks, setMarks] = useState([{ dist: 20, setting: 15.0 }, { dist: 30, setting: 22.5 }, { dist: 40, setting: 28.0 }]);
+  const [newDist, setNewDist] = useState(50);
+  const [newSetting, setNewSetting] = useState(0);
+
+  const interpolatedTape = useMemo(() => {
+    if (marks.length < 2) return [];
+    const sorted = [...marks].sort((a, b) => a.dist - b.dist);
+    const result: Array<{ dist: number; setting: number; isInput: boolean }> = [];
+    for (let d = 10; d <= 100; d += 2) {
+      // Find surrounding input marks
+      let lower = sorted[0], upper = sorted[sorted.length - 1];
+      for (let i = 0; i < sorted.length - 1; i++) {
+        if (d >= sorted[i].dist && d <= sorted[i + 1].dist) { lower = sorted[i]; upper = sorted[i + 1]; break; }
+      }
+      const ratio = (d - lower.dist) / (upper.dist - lower.dist);
+      const setting = lower.setting + ratio * (upper.setting - lower.setting);
+      const isInput = sorted.some(m => m.dist === d);
+      result.push({ dist: d, setting: Math.round(setting * 100) / 100, isInput });
+    }
+    return result;
+  }, [marks]);
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">Enter confirmed sight marks at 2-3 distances. The app interpolates a full sight tape from 10-100 yards.</p>
+      <div className="space-y-1">
+        {marks.map((m, i) => (
+          <div key={i} className="flex items-center gap-2 text-sm">
+            <span className="w-12">{m.dist}yd</span>
+            <input type="range" min={0} max={60} step={0.5} value={m.setting}
+              onChange={e => setMarks(prev => prev.map((pm, pi) => pi === i ? { ...pm, setting: Number(e.target.value) } : pm))}
+              className="flex-1 accent-primary" />
+            <span className="w-12 text-right font-mono">{m.setting.toFixed(1)}</span>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setMarks(prev => prev.filter((_, pi) => pi !== i))}>
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <Input type="number" placeholder="Dist (yd)" value={newDist} onChange={e => setNewDist(Number(e.target.value))} className="h-8 text-sm" />
+        <Input type="number" placeholder="Setting" value={newSetting} onChange={e => setNewSetting(Number(e.target.value))} className="h-8 text-sm" />
+        <Button size="sm" onClick={() => { if (newDist > 0) { setMarks(prev => [...prev, { dist: newDist, setting: newSetting }]); setNewDist(newDist + 10); } }}>
+          <Plus className="w-3 h-3" />
+        </Button>
+      </div>
+      {/* Visual tape */}
+      <div className="bg-secondary/30 rounded-xl p-3 overflow-x-auto">
+        <div className="flex flex-col gap-0.5" style={{ minWidth: 400 }}>
+          {interpolatedTape.map(t => (
+            <div key={t.dist} className={`flex items-center gap-2 text-xs ${t.isInput ? 'font-bold' : ''}`}>
+              <span className="w-8 text-right">{t.dist}</span>
+              <div className="flex-1 h-4 bg-secondary rounded relative overflow-hidden">
+                <div className="absolute inset-y-0 left-0 bg-primary/40 rounded transition-all" style={{ width: `${(t.setting / 60) * 100}%` }} />
+                {t.isInput && <div className="absolute inset-y-0 w-0.5 bg-primary" style={{ left: `${(t.setting / 60) * 100}%` }} />}
+              </div>
+              <span className="w-10 font-mono">{t.setting.toFixed(1)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============ STRING CREEP TRACKER ============
+function StringCreepTracker() {
+  const [measurements, setMeasurements] = useState([
+    { id: '1', date: '2025-01-01', braceHeight: 7.125, ata: 33.0, notes: 'New strings' },
+    { id: '2', date: '2025-03-01', braceHeight: 7.0, ata: 32.875, notes: 'After 500 shots' },
+  ]);
+  const [newBrace, setNewBrace] = useState(7.0);
+  const [newAta, setNewAta] = useState(33.0);
+  const [newNotes, setNewNotes] = useState('');
+
+  const sorted = [...measurements].sort((a, b) => a.date.localeCompare(b.date));
+  const latest = sorted[sorted.length - 1];
+  const baseline = sorted[0];
+  const braceDiff = latest && baseline ? latest.braceHeight - baseline.braceHeight : 0;
+  const ataDiff = latest && baseline ? latest.ata - baseline.ata : 0;
+  const needsAttention = Math.abs(braceDiff) > 0.125 || Math.abs(ataDiff) > 0.125;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">Log brace height and ATA measurements over time. Alert triggers when change exceeds 1/8".</p>
+
+      {needsAttention && (
+        <div className="bg-amber-50 rounded-xl p-3 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+          <p className="text-xs text-amber-700 font-medium">String creep detected! Consider replacing strings/cables.</p>
+        </div>
+      )}
+
+      <div className="flex gap-4 text-sm">
+        <div className="flex-1 bg-secondary/50 rounded-lg p-2 text-center">
+          <p className="text-lg font-bold">{latest?.braceHeight.toFixed(3) || '-'}</p>
+          <p className="text-[10px] text-muted-foreground">Brace Height"</p>
+          {baseline && <p className={`text-xs ${braceDiff < 0 ? 'text-amber-600' : ''}`}>{braceDiff > 0 ? '+' : ''}{braceDiff.toFixed(3)}</p>}
+        </div>
+        <div className="flex-1 bg-secondary/50 rounded-lg p-2 text-center">
+          <p className="text-lg font-bold">{latest?.ata.toFixed(3) || '-'}</p>
+          <p className="text-[10px] text-muted-foreground">ATA"</p>
+          {baseline && <p className={`text-xs ${ataDiff < 0 ? 'text-amber-600' : ''}`}>{ataDiff > 0 ? '+' : ''}{ataDiff.toFixed(3)}</p>}
+        </div>
+      </div>
+
+      <div className="space-y-1 max-h-32 overflow-y-auto">
+        {sorted.map(m => (
+          <div key={m.id} className="flex items-center justify-between text-xs border-b py-1">
+            <span>{m.date}</span>
+            <span>BH: {m.braceHeight.toFixed(3)}</span>
+            <span>ATA: {m.ata.toFixed(3)}</span>
+            <span className="text-muted-foreground">{m.notes}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-2">
+        <Input type="number" step={0.001} placeholder="Brace" value={newBrace} onChange={e => setNewBrace(Number(e.target.value))} className="h-8 text-sm" />
+        <Input type="number" step={0.001} placeholder="ATA" value={newAta} onChange={e => setNewAta(Number(e.target.value))} className="h-8 text-sm" />
+        <Input placeholder="Notes" value={newNotes} onChange={e => setNewNotes(e.target.value)} className="h-8 text-sm flex-1" />
+        <Button size="sm" onClick={() => { setMeasurements(prev => [...prev, { id: Date.now().toString(), date: new Date().toISOString().split('T')[0], braceHeight: newBrace, ata: newAta, notes: newNotes }]); }}>
+          <Plus className="w-3 h-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ============ ARROW BALLISTICS CALCULATOR ============
+function ArrowBallisticsCalculator() {
+  const [drawWeight, setDrawWeight] = useState(70);
+  const [arrowWeight, setArrowWeight] = useState(450);
+  const [iboSpeed, setIboSpeed] = useState(330);
+  const [drawLength, setDrawLength] = useState(29);
+
+  const actualSpeed = useMemo(() => {
+    // Adjust IBO for draw weight, draw length, and arrow weight
+    const dwFactor = drawWeight / 70;
+    const dlFactor = (drawLength - 30) * 10;
+    const awFactor = (arrowWeight - 350) / 3;
+    return Math.round(iboSpeed * dwFactor + dlFactor - awFactor);
+  }, [drawWeight, arrowWeight, iboSpeed, drawLength]);
+
+  const ke = useMemo(() => Math.round((actualSpeed * actualSpeed * arrowWeight) / 450240 * 10) / 10, [actualSpeed, arrowWeight]);
+  const momentum = useMemo(() => Math.round((arrowWeight * actualSpeed) / 225400 * 1000) / 1000, [actualSpeed, arrowWeight]);
+  const foc = useMemo(() => Math.round((arrowWeight * 0.12) * 10) / 10, [arrowWeight]);
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">Calculate speed, kinetic energy, and momentum from your setup.</p>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div><label className="text-xs text-muted-foreground">Draw Weight (lbs)</label>
+          <Input type="number" value={drawWeight} onChange={e => setDrawWeight(Number(e.target.value))} className="h-8" /></div>
+        <div><label className="text-xs text-muted-foreground">Arrow Weight (gr)</label>
+          <Input type="number" value={arrowWeight} onChange={e => setArrowWeight(Number(e.target.value))} className="h-8" /></div>
+        <div><label className="text-xs text-muted-foreground">IBO Speed (fps)</label>
+          <Input type="number" value={iboSpeed} onChange={e => setIboSpeed(Number(e.target.value))} className="h-8" /></div>
+        <div><label className="text-xs text-muted-foreground">Draw Length (in)</label>
+          <Input type="number" value={drawLength} onChange={e => setDrawLength(Number(e.target.value))} className="h-8" /></div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-primary/10 rounded-xl p-3 text-center">
+          <p className="text-2xl font-bold text-primary">{actualSpeed}</p>
+          <p className="text-[10px] text-muted-foreground">FPS (est)</p>
+        </div>
+        <div className="bg-emerald-50 rounded-xl p-3 text-center">
+          <p className="text-2xl font-bold text-emerald-600">{ke}</p>
+          <p className="text-[10px] text-muted-foreground">ft-lbs KE</p>
+        </div>
+        <div className="bg-amber-50 rounded-xl p-3 text-center">
+          <p className="text-2xl font-bold text-amber-600">{momentum}</p>
+          <p className="text-[10px] text-muted-foreground">slug-ft/s</p>
+        </div>
+        <div className="bg-blue-50 rounded-xl p-3 text-center">
+          <p className="text-2xl font-bold text-blue-600">{foc}gr</p>
+          <p className="text-[10px] text-muted-foreground">Est. FOC</p>
+        </div>
+      </div>
+
+      <div className="text-xs text-muted-foreground bg-secondary/30 rounded-lg p-2">
+        <strong>Game recommendations:</strong><br />
+        {ke >= 40 ? '✓ Deer/Elk capable (40+ ft-lbs)' : '⚠ Below 40 ft-lbs - consider lighter arrow or higher poundage for deer'}<br />
+        {momentum >= 0.25 ? '✓ Good momentum for penetration' : '⚠ Low momentum - may struggle on quartering shots'}
+      </div>
+    </div>
+  );
+}
+
 // ============ MAIN TUNING TOOLS COMPONENT ============
 export function TuningTools({ sessions }: { sessions: ArrowSession[] }) {
   return (
@@ -363,6 +557,12 @@ export function TuningTools({ sessions }: { sessions: ArrowSession[] }) {
           <TabsTrigger value="drift" className="text-xs"><ArrowDownToLine className="w-3 h-3 mr-1" />Drift</TabsTrigger>
         </TabsList>
 
+        <TabsList className="grid w-full grid-cols-3 h-8 mt-1">
+          <TabsTrigger value="sighttape" className="text-xs"><Ruler className="w-3 h-3 mr-1" />Sight Tape</TabsTrigger>
+          <TabsTrigger value="stringcreep" className="text-xs"><TrendingDown className="w-3 h-3 mr-1" />String Creep</TabsTrigger>
+          <TabsTrigger value="ballistics" className="text-xs"><Gauge className="w-3 h-3 mr-1" />Ballistics</TabsTrigger>
+        </TabsList>
+
         <TabsContent value="walkback" className="mt-3">
           <WalkBackTuneVisualizer />
         </TabsContent>
@@ -373,6 +573,18 @@ export function TuningTools({ sessions }: { sessions: ArrowSession[] }) {
 
         <TabsContent value="drift" className="mt-3">
           <GroupDriftTracker sessions={sessions} />
+        </TabsContent>
+
+        <TabsContent value="sighttape" className="mt-3">
+          <SightTapeGenerator />
+        </TabsContent>
+
+        <TabsContent value="stringcreep" className="mt-3">
+          <StringCreepTracker />
+        </TabsContent>
+
+        <TabsContent value="ballistics" className="mt-3">
+          <ArrowBallisticsCalculator />
         </TabsContent>
       </Tabs>
     </Card>
