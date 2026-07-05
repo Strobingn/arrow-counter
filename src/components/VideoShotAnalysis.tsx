@@ -85,7 +85,7 @@ export function VideoShotAnalysis({ sessions, onAttachMedia, addMedia }: VideoSh
   const playbackRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [lastSavedMediaId, setLastSavedMediaId] = useState<string | null>(null);
+  // Saved media ID is tracked on the clip itself
 
   const activeClip = clips.find(c => c.id === activeClipId);
   const analysis = activeClip?.poseAnalysis || null;

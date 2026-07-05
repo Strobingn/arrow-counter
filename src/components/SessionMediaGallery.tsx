@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Image, Video, Trash2, Link, Unlink, Play, ExternalLink } from 'lucide-react';
-import type { ArrowSession, SessionMedia } from '@/types';
+import { Image, Video, Trash2, Link, Unlink, Play } from 'lucide-react';
+import type { ArrowSession } from '@/types';
 import { getMediaBlob } from '@/hooks/useMediaStorage';
 import type { MediaMeta } from '@/hooks/useMediaStorage';
 import { toast } from 'sonner';
