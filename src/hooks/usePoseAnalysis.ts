@@ -244,8 +244,10 @@ function analyzePoses(poses: FramePose[]): { scores: FormScore; issues: FormIssu
       }
 
       // Check for head movement at release
-      if (noseY[releaseIdx] !== null && noseY[releaseIdx - 1] !== null) {
-        const headDrop = Math.abs(noseY[releaseIdx] - noseY[releaseIdx - 1]);
+      const currNose = noseY[releaseIdx];
+      const prevNose = noseY[releaseIdx - 1];
+      if (currNose !== null && prevNose !== null) {
+        const headDrop = Math.abs(currNose - prevNose);
         if (headDrop > 0.02) {
           issues.push({
             id: 'head-flinch',
