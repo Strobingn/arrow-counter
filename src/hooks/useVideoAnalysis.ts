@@ -95,7 +95,7 @@ function detectPhases(frames: ShotFrame[]): { phase: string; frameIndex: number 
  */
 function estimateMotion(_img1: string, _img2: string): number {
   // Motion estimation would compare img1 and img2 pixel data
-  return 0.5; - actual implementation would compare pixels
+  return 0.5;
 }
 
 export function useVideoAnalysis() {
