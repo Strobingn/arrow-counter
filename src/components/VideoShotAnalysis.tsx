@@ -5,13 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { Video, Play, Pause, Square, SkipBack, SkipForward, Camera, Trash2, Film, ChevronLeft, ChevronRight, Maximize, Layers, Clock } from 'lucide-react';
+import { Video, Play, Pause, Square, SkipBack, SkipForward, Camera, Trash2, ChevronLeft, ChevronRight, Maximize, Layers, Clock } from 'lucide-react';
 import { useVideoAnalysis } from '@/hooks/useVideoAnalysis';
 import { toast } from 'sonner';
 import type { BowProfile } from '@/types';
 
 interface VideoShotAnalysisProps {
-  bowProfiles: BowProfile[];
+  
 }
 
 const PHASE_COLORS: Record<string, string> = {

@@ -47,7 +47,6 @@ function detectPhases(frames: ShotFrame[]): { phase: string; frameIndex: number 
   }
 
   const avgMotion = motions.reduce((s, m) => s + m, 0) / motions.length;
-  const maxMotion = Math.max(...motions);
   const threshold = { low: avgMotion * 0.5, high: avgMotion * 2.5 };
 
   const keyFrames: { phase: string; frameIndex: number }[] = [];
@@ -94,8 +93,9 @@ function detectPhases(frames: ShotFrame[]): { phase: string; frameIndex: number 
  * Estimate motion between two image frames using canvas pixel diff.
  * Returns normalized motion score 0-1.
  */
-function estimateMotion(img1: string, img2: string): number {
-  return 0.5; // Simplified - actual implementation would compare pixels
+function estimateMotion(_img1: string, _img2: string): number {
+  // Motion estimation would compare img1 and img2 pixel data
+  return 0.5; - actual implementation would compare pixels
 }
 
 export function useVideoAnalysis() {

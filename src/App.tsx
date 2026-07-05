@@ -77,7 +77,6 @@ function App() {
   const [aiTargetDistance, setAiTargetDistance] = useState(20);
 
   // Competition
-  const comp = useCompetition();
 
   useEffect(() => { setIsLoaded(true); }, []);
 

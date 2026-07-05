@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { MoveRight, Target, ArrowDownToLine, Layers, Plus, Trash2, Ruler, TrendingDown, Gauge, AlertTriangle } from 'lucide-react';
 import type { ArrowSession } from '@/types';
 import { toast } from 'sonner';
-import { useState, useMemo } from 'react';
 
 // ============ WALK-BACK TUNE ============
 // Detects if center shot is off by shooting at increasing distances

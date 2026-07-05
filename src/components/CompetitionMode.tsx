@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { Trophy, Play, Square, Target, X, Trash2, TrendingUp, Crosshair } from 'lucide-react';
+import { Trophy, Play, Square, Target, X, Trash2, Crosshair } from 'lucide-react';
 import { useCompetition, ROUND_FORMATS, type CompetitionFormat, type CompetitionRound } from '@/hooks/useCompetition';
 import type { BowProfile } from '@/types';
 
