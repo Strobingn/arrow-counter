@@ -41,7 +41,9 @@ function getSupportedMimeType(): string {
   return '';
 }
 
-export function useVideoAnalysis() {
+export function useVideoAnalysis(
+  addMedia?: (blob: Blob, type: 'video' | 'image', opts?: { sessionId?: string; label?: string; thumbnail?: string }) => Promise<unknown>
+) {
   const [clips, setClips] = useState<ShotClip[]>(loadClips);
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -115,6 +117,17 @@ export function useVideoAnalysis() {
           stopCamera();
           if (frames.length < 5) { resolve(null); return; }
 
+          // Save original video blob to IndexedDB
+          let savedMediaId: string | undefined;
+          if (addMedia && blob.size > 1000) {
+            try {
+              const thumb = frames[0]?.imageData;
+              const result = await addMedia(blob, 'video', { label: 'Form analysis', thumbnail: thumb });
+              // @ts-expect-error result may have id
+              savedMediaId = result?.id;
+            } catch { /* silent - video analysis works without storage */ }
+          }
+
           setIsAnalyzing(true);
           setAnalysisProgress(5);
 
@@ -130,7 +143,7 @@ export function useVideoAnalysis() {
           setAnalysisProgress(100);
 
           const clip: ShotClip = {
-            id: genId(), date: new Date().toISOString().split('T')[0],
+            id: savedMediaId || genId(), date: new Date().toISOString().split('T')[0],
             duration: recordingTime, frames, poseAnalysis,
             notes: opts?.notes || '', bowId: opts?.bowId, distance: opts?.distance,
           };
@@ -139,7 +152,7 @@ export function useVideoAnalysis() {
         };
         recorder.stop();
       });
-    }, [recordingTime, stopCamera]
+    }, [recordingTime, stopCamera, addMedia]
   );
 
   const deleteClip = useCallback((id: string) => {

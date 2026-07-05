@@ -35,6 +35,14 @@ export interface EquipmentLog {
   timestamp: number;
 }
 
+export interface SessionMedia {
+  id: string;
+  type: 'video' | 'image';
+  label: string;
+  date: string;
+  createdAt: number;
+}
+
 export interface ArrowSession {
   id: string;
   timestamp: number;
@@ -49,6 +57,7 @@ export interface ArrowSession {
   temperature?: number; // fahrenheit
   endScores?: EndScore[]; // optional score tracking
   groupingQuality?: 'tight' | 'good' | 'loose' | 'scatter'; // self-rated
+  media?: SessionMedia[]; // linked media from IndexedDB
 }
 
 export interface HistoryItem {

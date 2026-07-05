@@ -13,8 +13,10 @@ import { ArrowAIAnalyzer } from '@/components/ArrowAIAnalyzer';
 import { TuningTools } from '@/components/TuningTools';
 import { CompetitionMode } from '@/components/CompetitionMode';
 import { VideoShotAnalysis } from '@/components/VideoShotAnalysis';
+import { SessionMediaGallery } from '@/components/SessionMediaGallery';
 import { useArrows } from '@/hooks/useArrows';
 import { useAudio } from '@/hooks/useAudio';
+import { useMediaStore } from '@/hooks/useMediaStorage';
 import { Target } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Toaster } from '@/components/ui/sonner';
@@ -26,7 +28,7 @@ const DEFAULT_GOAL = 30;
 
 function App() {
   const {
-    todaySessions, todayTotal, weekTotal, monthTotal, allTimeTotal,
+    sessions, todaySessions, todayTotal, weekTotal, monthTotal, allTimeTotal,
     bestDay, averagePerSession, currentStreak, longestStreak,
     history, bowProfiles, defaultBow, equipmentLogs,
     achievements, quickAddPresets, settings, canUndo, canRedo,
@@ -34,9 +36,11 @@ function App() {
     undo, redo, addBowProfile, updateBowProfile, deleteBowProfile,
     addEquipmentLog, deleteEquipmentLog, updateQuickAddPresets, updateSettings,
     exportData, importData, clearAllData, formatNumber,
+    attachMediaToSession, detachMediaFromSession,
   } = useArrows();
 
   const { playThwack, playAchievement, playGoal } = useAudio();
+  const { media: mediaStore, addMedia: addMediaStore, removeMedia } = useMediaStore();
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Track newly unlocked achievements
@@ -142,12 +146,13 @@ function App() {
         {/* Tabs */}
         <section className="max-w-md mx-auto mt-4">
           <Tabs defaultValue="today" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-4">
+            <TabsList className="grid w-full grid-cols-6 mb-4">
               <TabsTrigger value="today">Today</TabsTrigger>
               <TabsTrigger value="stats">Stats</TabsTrigger>
               <TabsTrigger value="comp">Compete</TabsTrigger>
               <TabsTrigger value="ai">AI & Tools</TabsTrigger>
               <TabsTrigger value="video">Video</TabsTrigger>
+              <TabsTrigger value="media">Media</TabsTrigger>
             </TabsList>
 
             <TabsContent value="today" className="space-y-4">
@@ -199,7 +204,21 @@ function App() {
             </TabsContent>
 
             <TabsContent value="video" className="space-y-4">
-              <VideoShotAnalysis />
+              <VideoShotAnalysis
+                sessions={sessions}
+                onAttachMedia={attachMediaToSession}
+                addMedia={addMediaStore}
+              />
+            </TabsContent>
+
+            <TabsContent value="media" className="space-y-4">
+              <SessionMediaGallery
+                sessions={sessions}
+                mediaStore={mediaStore}
+                onAttachMedia={attachMediaToSession}
+                onDetachMedia={detachMediaFromSession}
+                onDeleteMedia={removeMedia}
+              />
             </TabsContent>
 
             <TabsContent value="history" className="space-y-4">

@@ -420,6 +420,23 @@ export function useArrows() {
     }
   }, [sessions]);
 
+  // ---- Media Attachment ----
+  const attachMediaToSession = useCallback((sessionId: string, media: { id: string; type: 'video' | 'image'; label: string }) => {
+    setSessions(prev => prev.map(s => {
+      if (s.id !== sessionId) return s;
+      const existing = s.media || [];
+      if (existing.some(m => m.id === media.id)) return s; // already attached
+      return { ...s, media: [...existing, { id: media.id, type: media.type, label: media.label, date: s.date, createdAt: Date.now() }] };
+    }));
+  }, []);
+
+  const detachMediaFromSession = useCallback((sessionId: string, mediaId: string) => {
+    setSessions(prev => prev.map(s => {
+      if (s.id !== sessionId) return s;
+      return { ...s, media: (s.media || []).filter(m => m.id !== mediaId) };
+    }));
+  }, []);
+
   return {
     sessions,
     todaySessions,
@@ -460,5 +477,7 @@ export function useArrows() {
     importData,
     clearAllData,
     formatNumber,
+    attachMediaToSession,
+    detachMediaFromSession,
   };
 }

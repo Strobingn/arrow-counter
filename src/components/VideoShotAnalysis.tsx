@@ -65,8 +65,16 @@ function IssueCard({ issue, isExpanded, onToggle }: { issue: FormIssue; isExpand
   );
 }
 
-export function VideoShotAnalysis() {
-  const { clips, isRecording, isAnalyzing, analysisProgress, recordingTime, stream, lastError, startRecording, stopRecording, deleteClip } = useVideoAnalysis();
+import type { ArrowSession } from '@/types';
+
+interface VideoShotAnalysisProps {
+  sessions: ArrowSession[];
+  onAttachMedia: (sessionId: string, media: { id: string; type: 'video' | 'image'; label: string }) => void;
+  addMedia: (blob: Blob, type: 'video' | 'image', opts?: { sessionId?: string; label?: string; thumbnail?: string }) => Promise<{ id: string; type: 'video' | 'image'; size: number; thumbnail?: string; sessionId?: string; date: string; label: string; createdAt: number; url: string }>;
+}
+
+export function VideoShotAnalysis({ sessions, onAttachMedia, addMedia }: VideoShotAnalysisProps) {
+  const { clips, isRecording, isAnalyzing, analysisProgress, recordingTime, stream, lastError, startRecording, stopRecording, deleteClip } = useVideoAnalysis(addMedia);
   const [activeClipId, setActiveClipId] = useState<string | null>(null);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -77,6 +85,7 @@ export function VideoShotAnalysis() {
   const playbackRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [lastSavedMediaId, setLastSavedMediaId] = useState<string | null>(null);
 
   const activeClip = clips.find(c => c.id === activeClipId);
   const analysis = activeClip?.poseAnalysis || null;
@@ -324,6 +333,30 @@ export function VideoShotAnalysis() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Link to session */}
+      {activeClip && (
+        <div className="space-y-2">
+          <Separator />
+          <p className="text-xs font-medium">Link this video to a session:</p>
+          <div className="flex gap-1 overflow-x-auto">
+            {sessions.slice(0, 10).map(s => (
+              <Button
+                key={s.id}
+                size="sm"
+                variant="outline"
+                className="text-[10px] h-7 shrink-0"
+                onClick={() => {
+                  onAttachMedia(s.id, { id: activeClip.id, type: 'video', label: 'Form analysis' });
+                  toast.success('Video linked to session');
+                }}
+              >
+                {s.date} ({s.arrowCount})
+              </Button>
+            ))}
+          </div>
         </div>
       )}
     </Card>
