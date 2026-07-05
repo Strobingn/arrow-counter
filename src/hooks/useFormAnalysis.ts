@@ -129,57 +129,7 @@ function sobelEdges(gray: Uint8Array, w: number, h: number): { edges: Float32Arr
   return { edges, density };
 }
 
-// Track vertical edge profile (for bow arm / body tracking)
-function getVerticalProfile(edges: Float32Array, w: number, h: number): number[] {
-  const profile: number[] = [];
-  for (let y = 0; y < h; y += 4) {
-    let sum = 0;
-    for (let x = 0; x < w; x += 4) {
-      sum += edges[y * w + x];
-    }
-    profile.push(sum);
-  }
-  return profile;
-}
-
 // Find the dominant vertical motion region (bow arm area)
-function findBowArmRegion(diff: Uint8Array, w: number, h: number): { x: number; y: number } | null {
-  // Split frame into left/right halves - bow is typically on one side
-  let leftMotion = 0;
-  let rightMotion = 0;
-
-  for (let y = 0; y < h; y += 4) {
-    for (let x = 0; x < w / 2; x += 4) {
-      leftMotion += diff[y * w + x];
-    }
-    for (let x = w / 2; x < w; x += 4) {
-      rightMotion += diff[y * w + x];
-    }
-  }
-
-  // Bow arm is usually the side with more consistent vertical motion
-  const bowSide = leftMotion > rightMotion ? 'left' : 'right';
-  const startX = bowSide === 'left' ? 0 : Math.floor(w * 0.5);
-  const endX = bowSide === 'left' ? Math.floor(w * 0.5) : w;
-
-  // Find the vertical center of motion in the bow side (upper half = bow arm)
-  let mx = 0;
-  let my = 0;
-  let count = 0;
-  for (let y = 0; y < h * 0.7; y += 4) {
-    for (let x = startX; x < endX; x += 4) {
-      if (diff[y * w + x] > 20) {
-        mx += x;
-        my += y;
-        count++;
-      }
-    }
-  }
-
-  if (count < 10) return null;
-  return { x: mx / count / w, y: my / count / h };
-}
-
 // ---- Phase Classification ----
 
 function classifyPhases(metrics: FrameMetrics[]): DetectedPhase[] {
@@ -598,7 +548,7 @@ export async function analyzeForm(frames: ShotFrame[]): Promise<FormAnalysis> {
 
     const { data, width, height } = frameData;
     const gray = imageDataToGray(data, width, height);
-    const { edges, density: edgeDensity } = sobelEdges(gray, width, height);
+    const { density: edgeDensity } = sobelEdges(gray, width, height);
 
     if (prevGray) {
       const { avgMotion, concentrationX, concentrationY, motionPixels } = computeFrameDiff(
@@ -611,13 +561,6 @@ export async function analyzeForm(frames: ShotFrame[]): Promise<FormAnalysis> {
       // Estimate motion direction from concentration shift
       const dx = i > 0 ? concentrationX - (metrics[i - 1]?.motionConcentration.x || 0.5) : 0;
       const dy = i > 0 ? concentrationY - (metrics[i - 1]?.motionConcentration.y || 0.5) : 0;
-
-      // Find bow arm region for context
-      const diffData = new Uint8Array(width * height);
-      for (let j = 0; j < width * height; j++) {
-        diffData[j] = Math.abs(gray[j] - prevGray[j]);
-      }
-      const bowRegion = findBowArmRegion(diffData, width, height);
 
       // Calculate stability (inverse of local variance)
       const localWindow = metrics.slice(Math.max(0, i - 3), i);
