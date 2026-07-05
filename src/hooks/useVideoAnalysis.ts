@@ -123,11 +123,11 @@ export function useVideoAnalysis() {
       setRecordingTime(0);
 
       timerRef.current = setInterval(() => {
-        setRecordingTime(t => { if (t >= 8000) { recorder.stop(); return t; } return t + 100; });
+        setRecordingTime(t => { if (t >= 90000) { recorder.stop(); return t; } return t + 100; });
       }, 100);
 
-      // Auto-stop after 8 seconds (full shot cycle)
-      setTimeout(() => { if (recorder.state === 'recording') recorder.stop(); }, 8100);
+      // Auto-stop after 90 seconds
+      setTimeout(() => { if (recorder.state === 'recording') recorder.stop(); }, 90100);
 
       return true;
     } catch { return false; }

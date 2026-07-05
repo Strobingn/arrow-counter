@@ -122,7 +122,7 @@ export function VideoShotAnalysis({ }: VideoShotAnalysisProps) {
       }
     } else {
       const started = await startRecording();
-      if (started) toast.success('Recording started - shoot within 8 seconds');
+      if (started) toast.success('Recording started - up to 90 seconds');
       else toast.error('Camera access denied');
     }
   };
@@ -149,10 +149,10 @@ export function VideoShotAnalysis({ }: VideoShotAnalysisProps) {
           {isRecording ? <><Square className="w-5 h-5 mr-2" /> Stop Recording</> : <><Camera className="w-5 h-5 mr-2" /> Record Shot</>}
         </Button>
         <p className="text-xs text-muted-foreground text-center mt-2">
-          {isRecording ? 'Recording... release when ready' : 'Records up to 8 seconds, auto-detects phases'}
+          {isRecording ? 'Recording... release when ready' : 'Records up to 90 seconds, auto-detects phases'}
         </p>
 
-        {isRecording && <Progress value={(recordingTime / 8000) * 100} className="h-1 mt-2" />}
+        {isRecording && <Progress value={(recordingTime / 90000) * 100} className="h-1 mt-2" />}
 
         {/* Clip list */}
         {clips.length > 0 && (
