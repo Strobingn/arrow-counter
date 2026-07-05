@@ -29,6 +29,10 @@ export function ArrowAIAnalyzer({ targetDistance, onSaveAnalysis }: ArrowAIAnaly
   // Capture photo
   const takePhoto = useCallback(async () => {
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        toast.error('Camera not available on this device');
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
       });
@@ -49,8 +53,15 @@ export function ArrowAIAnalyzer({ targetDistance, onSaveAnalysis }: ArrowAIAnaly
       setAnalysis(null);
       setManualArrows([]);
       toast.success('Photo captured!');
-    } catch {
-      toast.error('Camera access denied. Use upload instead.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Camera failed';
+      if (msg.includes('denied') || msg.includes('NotAllowed')) {
+        toast.error('Camera permission denied. Enable it in Settings > Apps > Arrow Counter > Permissions.');
+      } else if (msg.includes('NotFound')) {
+        toast.error('No camera found on this device.');
+      } else {
+        toast.error('Camera error: ' + msg);
+      }
     }
   }, []);
 

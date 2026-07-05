@@ -313,7 +313,10 @@ export function useArrowAI() {
 
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      // Only set crossOrigin for external HTTP(S) URLs, not file:// or data: URLs
+      if (imageSrc.startsWith('http')) {
+        img.crossOrigin = 'anonymous';
+      }
       img.onload = () => {
         try {
           const canvas = document.createElement('canvas');

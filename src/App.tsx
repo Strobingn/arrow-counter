@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { ArrowCounter } from '@/components/ArrowCounter';
 import { SessionList } from '@/components/SessionList';
@@ -40,20 +40,23 @@ function App() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Track newly unlocked achievements
-  const [prevUnlockedCount, setPrevUnlockedCount] = useState(0);
+  const prevUnlockedRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const current = achievements.filter(a => a.unlockedAt).length;
-    if (current > prevUnlockedCount && prevUnlockedCount > 0) {
-      const newlyUnlocked = achievements.filter(a => a.unlockedAt && prevUnlockedCount === 0 ? true :
-        !achievements.slice(0, prevUnlockedCount).find(pa => pa.id === a.id && pa.unlockedAt));
-      if (newlyUnlocked.length > 0) {
-        const a = newlyUnlocked[0];
-        if (settings.soundEnabled) playAchievement();
-        toast.success(`Achievement unlocked: ${a.title}!`, { duration: 4000 });
+    const currentlyUnlocked = new Set(achievements.filter(a => a.unlockedAt).map(a => a.id));
+    const previouslyUnlocked = prevUnlockedRef.current;
+
+    // Find newly unlocked (in current but not in previous)
+    for (const id of currentlyUnlocked) {
+      if (!previouslyUnlocked.has(id)) {
+        const ach = achievements.find(a => a.id === id);
+        if (ach) {
+          if (settings.soundEnabled) playAchievement();
+          toast.success(`Achievement unlocked: ${ach.title}!`, { duration: 4000 });
+        }
       }
     }
-    setPrevUnlockedCount(current);
-  }, [achievements, prevUnlockedCount, playAchievement, settings.soundEnabled]);
+    prevUnlockedRef.current = currentlyUnlocked;
+  }, [achievements, playAchievement, settings.soundEnabled]);
 
   // Daily goal
   const [goal, setGoalState] = useState<number>(DEFAULT_GOAL);
@@ -74,6 +77,9 @@ function App() {
 
   // Target distance for AI analyzer
   const [aiTargetDistance, setAiTargetDistance] = useState(20);
+
+  // Memoize all sessions array to prevent unnecessary re-renders
+  const allSessions = useMemo(() => history.flatMap(h => h.sessions), [history]);
 
   // Competition
 
@@ -166,13 +172,13 @@ function App() {
                 longestStreak={longestStreak}
                 formatNumber={formatNumber}
               />
-              <Charts sessions={[...history.flatMap(h => h.sessions)]} formatNumber={formatNumber} />
+              <Charts sessions={allSessions} formatNumber={formatNumber} />
               <AchievementPanel
                 achievements={achievements}
                 totalArrows={allTimeTotal}
                 todayArrows={todayTotal}
                 streak={currentStreak}
-                sessions={[...history.flatMap(h => h.sessions)].length}
+                sessions={allSessions.length}
               />
             </TabsContent>
 

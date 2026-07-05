@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { ArrowSession, BowProfile, EquipmentLog, Achievement, Location } from '@/types';
 
 const STORAGE_KEY = 'arrow-tracker-data';
@@ -169,8 +169,6 @@ export function useArrows() {
       sessionCount: sess.length,
     }));
   }, [sessions]);
-
-  const locatedSessions = useMemo(() => sessions.filter(s => s.location), [sessions]);
 
   const defaultBow = useMemo(() => bowProfiles.find(b => b.isDefault) || bowProfiles[0], [bowProfiles]);
 
@@ -346,7 +344,7 @@ export function useArrows() {
   // ---- Settings ----
   const updateSettings = useCallback((updates: Partial<typeof settings>) => {
     setSettings(prev => ({ ...prev, ...updates }));
-  }, [settings]);
+  }, []);
 
   // ---- Import/Export ----
   const exportData = useCallback(() => {
@@ -414,11 +412,13 @@ export function useArrows() {
   }, [sessions, todaySessions, checkAchievements]);
 
   // Initialize undo stack
+  const hasInitUndo = useRef(false);
   useEffect(() => {
-    if (undoStack.length === 0 && sessions.length > 0) {
+    if (!hasInitUndo.current && sessions.length > 0) {
+      hasInitUndo.current = true;
       setUndoStack([sessions]);
     }
-  }, []); // eslint-disable-line
+  }, [sessions]);
 
   return {
     sessions,
@@ -432,7 +432,6 @@ export function useArrows() {
     currentStreak,
     longestStreak,
     history,
-    locatedSessions,
     bowProfiles,
     defaultBow,
     equipmentLogs,
