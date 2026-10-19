@@ -38,9 +38,11 @@ export function ArrowAIAnalyzer({ targetDistance, sessions, addMedia, attachMedi
 
   // Reset zoom when new image loaded
   useEffect(() => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-    setMode('place');
+    queueMicrotask(() => {
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+      setMode('place');
+    });
   }, [imageSrc]);
 
   // Touch handling for pinch zoom
@@ -138,7 +140,7 @@ export function ArrowAIAnalyzer({ targetDistance, sessions, addMedia, attachMedi
     }
     setManualArrows(prev => [...prev, coords]);
     toast.success('Arrow placed! Zoom in for precision.');
-  }, [imageSrc, mode, isCalibrating, calibrationPoints, screenToImage]);
+  }, [imageSrc, mode, isCalibrating, calibrationPoints, screenToImage, pan]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isPanning || mode !== 'pan') return;

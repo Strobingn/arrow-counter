@@ -66,11 +66,14 @@ function App() {
   const [goal, setGoalState] = useState<number>(DEFAULT_GOAL);
   useEffect(() => {
     const stored = localStorage.getItem(GOAL_STORAGE_KEY);
-    if (stored) {
-      const parsed = parseInt(stored, 10);
-      if (!isNaN(parsed) && parsed > 0) { setGoalState(parsed); return; }
-    }
-    localStorage.setItem(GOAL_STORAGE_KEY, String(DEFAULT_GOAL));
+    const parsed = stored ? parseInt(stored, 10) : NaN;
+    queueMicrotask(() => {
+      if (!isNaN(parsed) && parsed > 0) {
+        setGoalState(parsed);
+      } else {
+        localStorage.setItem(GOAL_STORAGE_KEY, String(DEFAULT_GOAL));
+      }
+    });
   }, []);
 
   const setGoal = (newGoal: number) => {
@@ -87,7 +90,10 @@ function App() {
 
   // Competition
 
-  useEffect(() => { setIsLoaded(true); }, []);
+  useEffect(() => {
+    const t = setTimeout(() => setIsLoaded(true), 0);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -175,6 +181,7 @@ function App() {
                 averagePerSession={averagePerSession}
                 currentStreak={currentStreak}
                 longestStreak={longestStreak}
+                goal={goal}
                 formatNumber={formatNumber}
               />
               <Charts sessions={allSessions} formatNumber={formatNumber} />

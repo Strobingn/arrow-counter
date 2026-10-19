@@ -201,15 +201,21 @@ export function useMediaStore() {
 
   useEffect(() => {
     // Check if IndexedDB is available (some private modes block it)
-    if (!window.indexedDB) {
-      setDbReady(false);
-      setLoading(false);
-      return;
-    }
-    getAllMedia().then(m => { setMedia(m); setLoading(false); }).catch(() => {
-      setDbReady(false);
-      setLoading(false);
-    });
+    let cancelled = false;
+    const init = async () => {
+      if (!window.indexedDB) {
+        if (!cancelled) { setDbReady(false); setLoading(false); }
+        return;
+      }
+      try {
+        const m = await getAllMedia();
+        if (!cancelled) { setMedia(m); setLoading(false); }
+      } catch {
+        if (!cancelled) { setDbReady(false); setLoading(false); }
+      }
+    };
+    void init();
+    return () => { cancelled = true; };
   }, []);
 
   const addMedia = useCallback(async (blob: Blob, type: 'video' | 'image', opts?: { sessionId?: string; label?: string; thumbnail?: string }) => {

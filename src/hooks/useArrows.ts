@@ -408,7 +408,7 @@ export function useArrows() {
 
   // Check achievements whenever sessions change
   useEffect(() => {
-    checkAchievements(sessions, todaySessions);
+    queueMicrotask(() => checkAchievements(sessions, todaySessions));
   }, [sessions, todaySessions, checkAchievements]);
 
   // Initialize undo stack
@@ -416,7 +416,7 @@ export function useArrows() {
   useEffect(() => {
     if (!hasInitUndo.current && sessions.length > 0) {
       hasInitUndo.current = true;
-      setUndoStack([sessions]);
+      queueMicrotask(() => setUndoStack([sessions]));
     }
   }, [sessions]);
 
