@@ -175,6 +175,7 @@ function App() {
                 averagePerSession={averagePerSession}
                 currentStreak={currentStreak}
                 longestStreak={longestStreak}
+                goal={goal}
                 formatNumber={formatNumber}
               />
               <Charts sessions={allSessions} formatNumber={formatNumber} />
