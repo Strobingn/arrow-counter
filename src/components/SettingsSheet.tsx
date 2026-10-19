@@ -58,7 +58,7 @@ export function SettingsSheet({ onExport, onImport, onClear, goal, onSetGoal, qu
 
   const handleBackup = async () => { try { await uploadFile(onExport()); toast.success('Backed up to Google Drive'); } catch (e) { toast.error(`Backup failed: ${(e as Error).message}`); } };
   const handleRestore = async () => {
-    try { const data = await downloadFile(); const success = onImport(data); success ? toast.success('Restored from Google Drive') : toast.error('Invalid backup data'); } catch (e) { toast.error(`Restore failed: ${(e as Error).message}`); }
+    try { const data = await downloadFile(); if (onImport(data)) { toast.success('Restored from Google Drive'); } else { toast.error('Invalid backup data'); } } catch (e) { toast.error(`Restore failed: ${(e as Error).message}`); }
   };
 
   const handleExportFile = () => {
@@ -92,7 +92,7 @@ export function SettingsSheet({ onExport, onImport, onClear, goal, onSetGoal, qu
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => { try { onImport(String(reader.result)) ? toast.success('Data imported') : toast.error('Invalid file'); } catch (err) { toast.error(`Import failed: ${(err as Error).message}`); } };
+    reader.onload = () => { try { if (onImport(String(reader.result))) { toast.success('Data imported'); } else { toast.error('Invalid file'); } } catch (err) { toast.error(`Import failed: ${(err as Error).message}`); } };
     reader.readAsText(file); e.target.value = '';
   };
 

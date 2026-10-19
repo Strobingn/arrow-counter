@@ -48,11 +48,40 @@ export interface PoseAnalysis {
 }
 
 // ---- TF.js lazy loader ----
-let detector: any = null;
-let tfLoading = false;
-let tfCallbacks: Array<(d: any) => void> = [];
+interface TfKeypoint {
+  name: string;
+  x: number;
+  y: number;
+  score: number;
+}
+interface TfPose {
+  keypoints: TfKeypoint[];
+}
+interface TfDetector {
+  estimatePoses(img: HTMLImageElement): Promise<TfPose[]>;
+}
+interface TfPoseDetection {
+  SupportedModels: { MoveNet: string };
+  movenet: { modelType: { SINGLEPOSE_LIGHTNING: string } };
+  createDetector(model: string, config: Record<string, unknown>): Promise<TfDetector>;
+}
+interface TfGlobal {
+  setBackend(backend: string): Promise<boolean>;
+  ready(): Promise<void>;
+}
 
-async function getDetector(): Promise<any> {
+declare global {
+  interface Window {
+    tf?: TfGlobal;
+    poseDetection?: TfPoseDetection;
+  }
+}
+
+let detector: TfDetector | null = null;
+let tfLoading = false;
+let tfCallbacks: Array<(d: TfDetector) => void> = [];
+
+async function getDetector(): Promise<TfDetector> {
   if (detector) return detector;
   if (tfLoading) {
     return new Promise((resolve) => tfCallbacks.push(resolve));
@@ -64,8 +93,12 @@ async function getDetector(): Promise<any> {
   await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.22.0/dist/tf-backend-webgl.min.js');
   await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js');
 
-  const tf = (window as any).tf;
-  const poseDetection = (window as any).poseDetection;
+  const tf = window.tf;
+  const poseDetection = window.poseDetection;
+  if (!tf || !poseDetection) {
+    tfLoading = false;
+    throw new Error('TensorFlow.js failed to load');
+  }
 
   await tf.setBackend('webgl');
   await tf.ready();
@@ -78,10 +111,11 @@ async function getDetector(): Promise<any> {
     }
   );
 
-  tfCallbacks.forEach((cb) => cb(detector));
+  const loaded: TfDetector = detector;
+  tfCallbacks.forEach((cb) => cb(loaded));
   tfCallbacks = [];
   tfLoading = false;
-  return detector;
+  return loaded;
 }
 
 function loadScript(src: string): Promise<void> {
@@ -472,8 +506,8 @@ export async function analyzeVideoFrames(
 
     if (poses.length > 0 && poses[0].keypoints) {
       const keypoints: PoseKeypoint[] = poses[0].keypoints
-        .filter((kp: any) => kp.score > 0.15)
-        .map((kp: any) => ({
+        .filter((kp: TfKeypoint) => kp.score > 0.15)
+        .map((kp: TfKeypoint) => ({
           name: kp.name,
           x: kp.x / img.width,
           y: kp.y / img.height,
