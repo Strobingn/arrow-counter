@@ -1,3 +1,4 @@
+import { dayLabel, localDateKey, shiftDay } from '@/lib/dates';
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,6 +17,7 @@ interface HistoryProps {
 }
 
 export function History({ history, formatNumber }: HistoryProps) {
+  const [visibleDays, setVisibleDays] = useState(14);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
 
   const toggleDate = (date: string) => {
@@ -31,23 +33,10 @@ export function History({ history, formatNumber }: HistoryProps) {
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-    if (dateStr === today) {
-      return 'Today';
-    } else if (dateStr === yesterdayStr) {
-      return 'Yesterday';
-    } else {
-      return date.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'short',
-        day: 'numeric',
-      });
-    }
+    const today = localDateKey();
+    if (dateStr === today) return 'Today';
+    if (dateStr === shiftDay(today, -1)) return 'Yesterday';
+    return dayLabel(dateStr, { weekday: 'long', month: 'short', day: 'numeric' });
   };
 
   const formatTime = (timestamp: number) => {
@@ -60,8 +49,9 @@ export function History({ history, formatNumber }: HistoryProps) {
 
   if (history.length === 0) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-primary mb-4">History</h2>
+      <div className="chart-panel">
+        <h2 className="text-lg font-semibold text-primary mb-4">Session history</h2>
+      <p className="text-xs text-muted-foreground mb-4">All dates and bows · expand a day to see its sessions.</p>
         <p className="text-sm text-muted-foreground text-center py-4">
           No history yet. Start shooting!
         </p>
@@ -70,11 +60,12 @@ export function History({ history, formatNumber }: HistoryProps) {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm">
-      <h2 className="text-lg font-semibold text-primary mb-4">History</h2>
+    <div className="chart-panel">
+      <h2 className="text-lg font-semibold text-primary mb-4">Session history</h2>
+      <p className="text-xs text-muted-foreground mb-4">All dates and bows · expand a day to see its sessions.</p>
       
       <div className="space-y-2">
-        {history.map((item) => {
+        {history.slice(0, visibleDays).map((item) => {
           const isExpanded = expandedDates.has(item.date);
           
           return (
@@ -84,6 +75,7 @@ export function History({ history, formatNumber }: HistoryProps) {
             >
               <button
                 onClick={() => toggleDate(item.date)}
+                aria-expanded={isExpanded}
                 className={cn(
                   'w-full flex items-center justify-between p-3 transition-colors duration-200',
                   'hover:bg-secondary/50 active:bg-secondary'
@@ -141,6 +133,7 @@ export function History({ history, formatNumber }: HistoryProps) {
           );
         })}
       </div>
+      {history.length > visibleDays && <button className="text-action mt-4 w-full justify-center" onClick={() => setVisibleDays(days => days + 14)}>Show older days ({history.length - visibleDays} remaining)</button>}
     </div>
   );
 }

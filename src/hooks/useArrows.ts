@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { dateFromKey, localDateKey, sessionDay } from '@/lib/dates';
+import { useLocalDay } from '@/hooks/useLocalDay';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ArrowSession, BowProfile, EquipmentLog, Achievement, Location } from '@/types';
 
 const STORAGE_KEY = 'arrow-tracker-data';
@@ -33,7 +35,7 @@ function generateId(): string {
 }
 
 function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0];
+  return localDateKey();
 }
 
 function loadJSON<T>(key: string, fallback: T): T {
@@ -59,7 +61,7 @@ export function useArrows() {
   const [settings, setSettings] = useState<{ soundEnabled: boolean; hapticEnabled: boolean; distanceUnit: 'yards' | 'meters'; targetFace: string }>(
     () => loadJSON(SETTINGS_KEY, { soundEnabled: true, hapticEnabled: true, distanceUnit: 'yards', targetFace: '40cm' })
   );
-  const [undoStack, setUndoStack] = useState<ArrowSession[][]>([]);
+  const [undoStack, setUndoStack] = useState<ArrowSession[][]>(() => [sessions]);
   const [redoStack, setRedoStack] = useState<ArrowSession[][]>([]);
 
   // Persist sessions
@@ -71,10 +73,10 @@ export function useArrows() {
   useEffect(() => { saveJSON(SETTINGS_KEY, settings); }, [settings]);
 
   // ---- Computed ----
-  const todayDate = getTodayDate();
+  const todayDate = useLocalDay();
 
   const todaySessions = useMemo(() =>
-    sessions.filter(s => s.date === todayDate).sort((a, b) => b.timestamp - a.timestamp),
+    sessions.filter(s => sessionDay(s) === todayDate).sort((a, b) => b.timestamp - a.timestamp),
     [sessions, todayDate]
   );
 
@@ -86,14 +88,14 @@ export function useArrows() {
     const sunday = new Date(now);
     sunday.setDate(now.getDate() - dayOfWeek);
     sunday.setHours(0, 0, 0, 0);
-    return sessions.filter(s => s.timestamp >= sunday.getTime()).reduce((sum, s) => sum + s.arrowCount, 0);
-  }, [sessions]);
+    return sessions.filter(s => s.timestamp >= sunday.getTime() && sessionDay(s) <= todayDate).reduce((sum, s) => sum + s.arrowCount, 0);
+  }, [sessions, todayDate]);
 
   const monthTotal = useMemo(() => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    return sessions.filter(s => s.timestamp >= monthStart.getTime()).reduce((sum, s) => sum + s.arrowCount, 0);
-  }, [sessions]);
+    return sessions.filter(s => s.timestamp >= monthStart.getTime() && sessionDay(s) <= todayDate).reduce((sum, s) => sum + s.arrowCount, 0);
+  }, [sessions, todayDate]);
 
   const allTimeTotal = useMemo(() => sessions.reduce((sum, s) => sum + s.arrowCount, 0), [sessions]);
 
@@ -105,7 +107,8 @@ export function useArrows() {
   const bestDay = useMemo(() => {
     const dayMap = new Map<string, number>();
     sessions.forEach(s => {
-      dayMap.set(s.date, (dayMap.get(s.date) || 0) + s.arrowCount);
+      const date = sessionDay(s);
+      dayMap.set(date, (dayMap.get(date) || 0) + s.arrowCount);
     });
     let bestDate = '';
     let bestCount = 0;
@@ -117,13 +120,13 @@ export function useArrows() {
 
   const currentStreak = useMemo(() => {
     if (sessions.length === 0) return 0;
-    const dateSet = new Set(sessions.map(s => s.date));
-    const today = new Date();
+    const dateSet = new Set(sessions.map(sessionDay));
+    const today = dateFromKey(todayDate);
     let streak = 0;
     for (let i = 0; i < 365; i++) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = localDateKey(d);
       if (dateSet.has(dateStr)) {
         streak++;
       } else if (i === 0) {
@@ -133,11 +136,11 @@ export function useArrows() {
       }
     }
     return streak;
-  }, [sessions]);
+  }, [sessions, todayDate]);
 
   const longestStreak = useMemo(() => {
     if (sessions.length === 0) return 0;
-    const dateSet = new Set(sessions.map(s => s.date));
+    const dateSet = new Set(sessions.map(sessionDay));
     const sortedDates = Array.from(dateSet).sort();
     let maxStreak = 0;
     let current = 0;
@@ -158,9 +161,10 @@ export function useArrows() {
   const history = useMemo(() => {
     const dayMap = new Map<string, ArrowSession[]>();
     [...sessions].sort((a, b) => b.timestamp - a.timestamp).forEach(s => {
-      const existing = dayMap.get(s.date) || [];
+      const date = sessionDay(s);
+      const existing = dayMap.get(date) || [];
       existing.push(s);
-      dayMap.set(s.date, existing);
+      dayMap.set(date, existing);
     });
     return Array.from(dayMap.entries()).map(([date, sess]) => ({
       date,
@@ -178,12 +182,12 @@ export function useArrows() {
     const totalCount = sessionList.reduce((sum, s) => sum + s.arrowCount, 0);
     const sessCount = sessionList.length;
     const streak = (() => {
-      const dateSet = new Set(sessionList.map(s => s.date));
+      const dateSet = new Set(sessionList.map(sessionDay));
       const today = new Date();
       let s = 0;
       for (let i = 0; i < 365; i++) {
         const d = new Date(today); d.setDate(d.getDate() - i);
-        if (dateSet.has(d.toISOString().split('T')[0])) s++;
+        if (dateSet.has(localDateKey(d))) s++;
         else if (i > 0) break;
       }
       return s;
@@ -238,7 +242,7 @@ export function useArrows() {
   const removeOneArrow = useCallback(() => {
     setSessions(prev => {
       const today = getTodayDate();
-      const lastTodayIdx = [...prev].reverse().findIndex(s => s.date === today);
+      const lastTodayIdx = [...prev].reverse().findIndex(s => sessionDay(s) === today);
       if (lastTodayIdx === -1) return prev;
       const actualIdx = prev.length - 1 - lastTodayIdx;
       const session = prev[actualIdx];
@@ -410,15 +414,6 @@ export function useArrows() {
   useEffect(() => {
     checkAchievements(sessions, todaySessions);
   }, [sessions, todaySessions, checkAchievements]);
-
-  // Initialize undo stack
-  const hasInitUndo = useRef(false);
-  useEffect(() => {
-    if (!hasInitUndo.current && sessions.length > 0) {
-      hasInitUndo.current = true;
-      setUndoStack([sessions]);
-    }
-  }, [sessions]);
 
   // ---- Media Attachment ----
   const attachMediaToSession = useCallback((sessionId: string, media: { id: string; type: 'video' | 'image'; label: string }) => {

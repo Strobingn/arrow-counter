@@ -59,7 +59,7 @@ export function EquipmentSheet({ bowProfiles, equipmentLogs, onAddBow, onUpdateB
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full w-10 h-10 transition-all hover:scale-105 active:scale-95">
+        <Button variant="ghost" size="icon" aria-label="Equipment" className="rounded-full w-10 h-10 transition-all hover:scale-105 active:scale-95">
           <Crosshair className="w-5 h-5" />
         </Button>
       </SheetTrigger>

@@ -57,7 +57,7 @@ export function SessionList({ sessions, bowProfiles, formatNumber, onDelete, onE
 
   if (sessions.length === 0) {
     return (
-      <div className="bg-white dark:bg-card rounded-2xl p-6 shadow-sm">
+      <div className="chart-panel">
         <h2 className="text-lg font-semibold text-primary mb-4">Today's Sessions</h2>
         <p className="text-sm text-muted-foreground text-center py-4">No arrows recorded today. Start shooting!</p>
       </div>
@@ -65,7 +65,7 @@ export function SessionList({ sessions, bowProfiles, formatNumber, onDelete, onE
   }
 
   return (
-    <div className="bg-white dark:bg-card rounded-2xl p-4 shadow-sm">
+    <div className="chart-panel">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-primary">Today's Sessions</h2>
         <span className="text-sm text-muted-foreground">{sessions.length} session{sessions.length !== 1 ? 's' : ''}</span>
@@ -133,12 +133,12 @@ export function SessionList({ sessions, bowProfiles, formatNumber, onDelete, onE
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" onClick={() => startEdit(session)}
-                    className="w-8 h-8 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-accent/10 hover:text-accent">
+                  <Button variant="ghost" size="icon" aria-label="Edit session" onClick={() => startEdit(session)}
+                    className="w-8 h-8 rounded-full opacity-70 hover:opacity-100 transition-all hover:bg-secondary hover:text-foreground">
                     <Edit2 className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => onDelete(session.id)}
-                    className="w-8 h-8 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive">
+                  <Button variant="ghost" size="icon" aria-label="Delete session" onClick={() => onDelete(session.id)}
+                    className="w-8 h-8 rounded-full opacity-70 hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>

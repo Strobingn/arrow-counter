@@ -16,9 +16,8 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // Set WebView background to light grey
-        // This prevents white flash during loading and sets the app background
-        bridge.getWebView().setBackgroundColor(Color.parseColor("#F5F5F5"));
+        // Match the grayscale dashboard while the WebView loads.
+        bridge.getWebView().setBackgroundColor(Color.parseColor("#0D0D0D"));
         
         // Request location permissions on app start
         requestLocationPermissions();

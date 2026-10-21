@@ -36,7 +36,7 @@ interface ArrowCounterProps {
 }
 
 export function ArrowCounter({
-  todayTotal, goal, onSetGoal, onAdd, onAddOne, onRemoveOne, onUndo, onRedo,
+  todayTotal, goal, onSetGoal, onAdd, onRemoveOne, onUndo, onRedo,
   canUndo, canRedo, formatNumber, bowProfiles, defaultBow, quickAddPresets,
   playThwack, playGoal, soundEnabled,
 }: ArrowCounterProps) {
@@ -73,13 +73,17 @@ export function ArrowCounter({
   const decrement = () => setCount(c => Math.max(1, c - 1));
 
   const handleAdd = () => {
-    onAdd(count, note || undefined, location, {
+    const pending = currentEndArrows.some(score => score !== null)
+      ? [{ id: Date.now().toString(36), arrows: [...currentEndArrows] as EndScore['arrows'] }] : [];
+    const savedEnds = [...endScores, ...pending];
+    const scoredCount = savedEnds.reduce((sum, end) => sum + end.arrows.filter(score => score !== null).length, 0);
+    onAdd(Math.max(count, scoredCount), note || undefined, location, {
       bowId: selectedBowId,
       distance,
       distanceUnit,
       weather: weather || undefined,
       temperature,
-      endScores: endScores.length > 0 ? endScores : undefined,
+      endScores: savedEnds.length > 0 ? savedEnds : undefined,
       groupingQuality,
     });
     setCount(6); setNote(''); setLocation(undefined); setShowNoteInput(false);
@@ -91,7 +95,7 @@ export function ArrowCounter({
   };
 
   const quickAdd = (amount: number) => {
-    onAdd(amount, undefined, undefined, { bowId: selectedBowId });
+    onAdd(amount, undefined, undefined, { bowId: selectedBowId, distance, distanceUnit, groupingQuality });
     if (soundEnabled) playThwack(200 + amount * 5);
   };
 
@@ -106,6 +110,7 @@ export function ArrowCounter({
 
   useEffect(() => {
     const prev = prevTotalRef.current;
+    prevTotalRef.current = todayTotal;
     if (todayTotal > prev && todayTotal >= goal && prev < goal) {
       setIsCelebrating(true);
       if (soundEnabled) playGoal();
@@ -113,7 +118,6 @@ export function ArrowCounter({
       const t = setTimeout(() => setIsCelebrating(false), 900);
       return () => clearTimeout(t);
     }
-    prevTotalRef.current = todayTotal;
   }, [todayTotal, goal, soundEnabled, playGoal]);
 
   useEffect(() => { setTempGoal(goal); }, [goal]);
@@ -127,7 +131,7 @@ export function ArrowCounter({
   const ringOffset = ringCirc - (Math.min(progress, 100) / 100) * ringCirc;
 
   // Score tracker functions
-  const setArrowScore = (idx: number, score: string) => {
+  const setArrowScore = (idx: number, score: string | null) => {
     const next = [...currentEndArrows];
     next[idx] = score;
     setCurrentEndArrows(next);
@@ -135,12 +139,13 @@ export function ArrowCounter({
   const saveEnd = () => {
     if (currentEndArrows.every(a => a === null)) return;
     setEndScores(prev => [...prev, { id: Date.now().toString(36), arrows: [...currentEndArrows] as EndScore['arrows'] }]);
+    setCount(endScores.reduce((sum, end) => sum + end.arrows.filter(score => score !== null).length, 0) + currentEndArrows.filter(score => score !== null).length);
     setCurrentEndArrows([null, null, null, null, null, null]);
   };
   const clearEnd = () => setCurrentEndArrows([null, null, null, null, null, null]);
 
   return (
-    <div className="flex flex-col items-center py-6">
+    <div className="flex flex-col items-center py-2">
       {/* Streak + Goal info */}
       <div className="text-center mb-2 w-full">
         <div className="flex items-center justify-center gap-2 mb-1">
@@ -161,24 +166,24 @@ export function ArrowCounter({
           <svg width={ringSize} height={ringSize} className="absolute inset-0" style={{ transform: 'rotate(-90deg)' }}>
             <circle cx={ringSize / 2} cy={ringSize / 2} r={ringRadius} fill="none" stroke="currentColor" className="text-muted/30" strokeWidth={strokeW} strokeLinecap="round" />
             <circle cx={ringSize / 2} cy={ringSize / 2} r={ringRadius} fill="none"
-              className={cn('transition-[stroke-dashoffset,stroke] duration-500 ease-out', isComplete ? 'stroke-emerald-500' : 'stroke-primary')}
+              className={cn('transition-[stroke-dashoffset,stroke] duration-500 ease-out', 'stroke-primary')}
               strokeWidth={strokeW} strokeLinecap="round" strokeDasharray={ringCirc} strokeDashoffset={ringOffset} />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className={cn('text-5xl font-bold tabular-nums transition-all duration-300', isComplete ? 'text-emerald-600' : 'text-primary', isCelebrating && 'scale-110')}>
+            <div className={cn('text-5xl font-bold tabular-nums transition-all duration-300', isComplete ? 'text-foreground' : 'text-primary', isCelebrating && 'scale-110')}>
               {formatNumber(todayTotal)}
             </div>
             <div className="text-[10px] text-muted-foreground font-medium tracking-[1px] -mt-0.5">OF {goal}</div>
-            {isComplete && <Trophy className="w-4 h-4 text-emerald-500 mt-0.5 animate-pulse" />}
+            {isComplete && <Trophy className="w-4 h-4 text-foreground mt-0.5 animate-pulse" />}
           </div>
         </div>
 
         <div className="mt-3 text-center">
           <div className="text-xs font-medium text-muted-foreground">
-            Goal: <span className="text-foreground font-semibold tabular-nums">{goal}</span>{isComplete && <span className="ml-1 text-emerald-600">(achieved)</span>}
+            Goal: <span className="text-foreground font-semibold tabular-nums">{goal}</span>{isComplete && <span className="ml-1 text-foreground">(achieved)</span>}
           </div>
-          <div className={cn('mt-0.5 text-sm font-semibold', isComplete ? 'text-emerald-600' : 'text-muted-foreground')}>
-            {isComplete ? `Exceeded by ${overBy} arrows` : `${remaining} remaining`} &bull; {progress}%
+          <div className={cn('mt-0.5 text-sm font-semibold', isComplete ? 'text-foreground' : 'text-muted-foreground')}>
+            {isComplete ? overBy > 0 ? `Exceeded by ${overBy} arrows` : 'Goal reached' : `${remaining} remaining`} &bull; {progress}%
           </div>
         </div>
       </div>
@@ -204,22 +209,22 @@ export function ArrowCounter({
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setIsGoalDialogOpen(false)} className="flex-1 rounded-full border-2">Cancel</Button>
             <Button onClick={() => { onSetGoal(tempGoal); setIsGoalDialogOpen(false); }}
-              className="flex-1 h-11 rounded-full text-base font-semibold bg-gray-700 hover:bg-gray-600 text-white border-2 border-white hover:scale-105 active:scale-95">Save Goal</Button>
+              className="flex-1 h-11 rounded-full text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground border border-primary hover:scale-105 active:scale-95">Save Goal</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Counter */}
       <div className="flex items-center gap-4 mb-4">
-        <Button variant="secondary" size="icon" onClick={decrement}
-          className="w-14 h-14 rounded-full text-xl transition-all hover:scale-105 active:scale-95 bg-gray-700 hover:bg-gray-600 border-2 border-white text-white">
+        <Button variant="secondary" size="icon" onClick={decrement} aria-label="Decrease arrow count" disabled={count <= 1}
+          className="w-14 h-14 rounded-full text-xl transition-all hover:scale-105 active:scale-95 bg-secondary hover:bg-accent border border-border text-foreground">
           <Minus className="w-6 h-6" />
         </Button>
         <div className="w-24 h-20 flex items-center justify-center bg-secondary rounded-2xl">
           <span className="text-4xl font-bold text-primary tabular-nums">{count}</span>
         </div>
-        <Button variant="secondary" size="icon" onClick={increment}
-          className="w-14 h-14 rounded-full text-xl transition-all hover:scale-105 active:scale-95 bg-gray-700 hover:bg-gray-600 border-2 border-white text-white">
+        <Button variant="secondary" size="icon" onClick={increment} aria-label="Increase arrow count"
+          className="w-14 h-14 rounded-full text-xl transition-all hover:scale-105 active:scale-95 bg-secondary hover:bg-accent border border-border text-foreground">
           <Plus className="w-6 h-6" />
         </Button>
       </div>
@@ -283,7 +288,7 @@ export function ArrowCounter({
                 <div key={end.id} className="flex items-center gap-1 text-xs bg-secondary/50 rounded-lg px-2 py-1">
                   <span className="text-muted-foreground w-8">End {ei + 1}:</span>
                   {end.arrows.map((a, ai) => (
-                    <span key={ai} className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold ${a === 'X' ? 'bg-red-500 text-white' : a === '10' ? 'bg-yellow-500 text-white' : a === 'M' ? 'bg-gray-400 text-white' : 'bg-primary/10 text-primary'}`}>
+                    <span key={ai} className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold ${a === 'X' || a === '10' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
                       {a ?? '-'}
                     </span>
                   ))}
@@ -297,21 +302,15 @@ export function ArrowCounter({
           {/* Current end */}
           <div className="border rounded-xl p-2">
             <p className="text-xs text-muted-foreground mb-1.5 text-center">Current End ({endScores.length + 1})</p>
-            <div className="flex justify-center gap-1 flex-wrap">
+            <div className="score-entry">
               {currentEndArrows.map((arrow, idx) => (
-                <div key={idx} className="flex flex-col items-center gap-0.5">
-                  <div className="flex gap-0.5">
-                    {['X', '10', '9', '8', '7', 'M'].map(score => (
-                      <button key={score} onClick={() => setArrowScore(idx, score)}
-                        className={`w-6 h-6 rounded-full text-[9px] font-bold transition-all ${currentEndArrows[idx] === score ? 'bg-primary text-white scale-110' : 'bg-secondary hover:bg-primary/20'}`}>
-                        {score}
-                      </button>
-                    ))}
-                  </div>
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${arrow === 'X' ? 'bg-red-500 text-white' : arrow === 'M' ? 'bg-gray-400 text-white' : arrow ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                    {arrow ?? '-'}
-                  </span>
-                </div>
+                <label key={idx}>Arrow {idx + 1}
+                  <select aria-label={`Arrow ${idx + 1} score`} value={arrow ?? ''}
+                    onChange={event => setArrowScore(idx, event.target.value || null)}>
+                    <option value="">—</option>
+                    {['X', '10', '9', '8', '7', '6', '5', '4', '3', '2', '1', 'M'].map(score => <option key={score} value={score}>{score}</option>)}
+                  </select>
+                </label>
               ))}
             </div>
             <div className="flex gap-2 mt-2">
@@ -342,7 +341,7 @@ export function ArrowCounter({
 
       {/* Main Add Button */}
       <Button onClick={handleAdd}
-        className="h-14 px-8 rounded-full text-lg font-semibold transition-all duration-150 bg-gray-700 hover:bg-gray-600 text-white border-2 border-white hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl mb-4">
+        className="h-14 px-8 rounded-full text-lg font-semibold transition-all duration-150 bg-primary hover:bg-primary/90 text-primary-foreground border border-primary hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl mb-4">
         <Check className="w-5 h-5 mr-2" />Add {count} Arrow{count !== 1 ? 's' : ''}
       </Button>
 
@@ -367,11 +366,10 @@ export function ArrowCounter({
 
       {/* Quick Add */}
       <div className="flex flex-wrap justify-center gap-2 mt-4">
-        <Button variant="outline" onClick={onRemoveOne} className="rounded-full px-4 bg-gray-700 hover:bg-gray-600 border-2 border-white text-white hover:scale-105 active:scale-95">-1</Button>
-        <Button variant="outline" onClick={onAddOne} className="rounded-full px-4 bg-gray-700 hover:bg-gray-600 border-2 border-white text-white hover:scale-105 active:scale-95">+1</Button>
-        {quickAddPresets.map((amount) => (
-          <Button key={amount} variant="outline" onClick={() => quickAdd(amount)}
-            className="rounded-full px-4 bg-gray-700 hover:bg-gray-600 border-2 border-white text-white hover:scale-105 active:scale-95">
+        <Button variant="outline" onClick={onRemoveOne} disabled={todayTotal === 0} aria-label="Remove one logged arrow" className="rounded-full px-4 bg-secondary hover:bg-accent border border-border text-foreground hover:scale-105 active:scale-95">-1</Button>
+        {[...new Set([1, ...quickAddPresets])].map((amount) => (
+          <Button key={amount} variant="outline" onClick={() => quickAdd(amount)} aria-label={`Quick add ${amount} ${amount === 1 ? 'arrow' : 'arrows'}`}
+            className="rounded-full px-4 bg-secondary hover:bg-accent border border-border text-foreground hover:scale-105 active:scale-95">
             +{amount}
           </Button>
         ))}

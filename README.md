@@ -71,3 +71,9 @@ export default defineConfig([
   },
 ])
 ```
+
+## Visual dashboard (1.1)
+
+The Bowtune-inspired grayscale interface adds Overview, Shoot, Insights, and Toolkit screens. Explore seven chart views with date and bow filters, plus accessible daily values and session history. See [UI notes and screenshots](docs/VISUAL_UI.md).
+
+Run `npm test` for chart calculation checks and `npm run build` for the production web build. The Android workflow also runs on `codex/**` branches.
