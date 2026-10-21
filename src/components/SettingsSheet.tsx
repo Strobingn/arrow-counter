@@ -110,7 +110,7 @@ export function SettingsSheet({ onExport, onImport, onClear, goal, onSetGoal, qu
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full w-10 h-10 transition-all hover:scale-105 active:scale-95">
+        <Button variant="ghost" size="icon" aria-label="Settings" className="rounded-full w-10 h-10 transition-all hover:scale-105 active:scale-95">
           <Settings className="w-5 h-5" />
         </Button>
       </SheetTrigger>

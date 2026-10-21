@@ -1,3 +1,4 @@
+import { dayLabel } from '@/lib/dates';
 import { useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Flame } from 'lucide-react';
@@ -45,16 +46,16 @@ interface StatsProps {
 export function Stats({ todayTotal, weekTotal, monthTotal, allTimeTotal, bestDay, averagePerSession, currentStreak, longestStreak, formatNumber }: StatsProps) {
   const formatBestDay = () => {
     if (!bestDay.date) return '-';
-    return new Date(bestDay.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return dayLabel(bestDay.date);
   };
 
   return (
     <div className="space-y-3">
       {currentStreak > 0 && (
-        <div className="flex items-center justify-center gap-1.5 py-2 px-3 bg-orange-50 dark:bg-orange-950/30 rounded-xl">
-          <Flame className="w-4 h-4 text-orange-500" />
-          <span className="text-sm font-semibold text-orange-700 dark:text-orange-300">{currentStreak}-day shooting streak</span>
-          {currentStreak >= longestStreak && <span className="text-xs text-orange-500 ml-1">(best!)</span>}
+        <div className="flex items-center justify-center gap-1.5 py-2 px-3 bg-secondary rounded-xl">
+          <Flame className="w-4 h-4 text-foreground" />
+          <span className="text-sm font-semibold text-foreground">{currentStreak}-day shooting streak</span>
+          {currentStreak >= longestStreak && <span className="text-xs text-foreground ml-1">(best!)</span>}
         </div>
       )}
 

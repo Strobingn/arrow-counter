@@ -1,21 +1,9 @@
+import type { ReactNode } from 'react';
 import { Target } from 'lucide-react';
 
-interface HeaderProps {
-  actions?: React.ReactNode;
-}
-
-export function Header({ actions }: HeaderProps) {
-  return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-background shadow-sm">
-      <div className="flex items-center justify-between h-full px-4">
-        <div className="flex items-center gap-2">
-          <Target className="w-6 h-6 text-primary" />
-          <h1 className="text-lg font-semibold text-primary">Arrow Tracker</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          {actions}
-        </div>
-      </div>
-    </header>
-  );
+export function Header({ actions }: { actions?: ReactNode }) {
+  return <header className="app-header"><div className="header-inner">
+    <div className="brand"><span className="brand-icon"><Target size={25} strokeWidth={1.5} /></span><div><span>ARROW<span className="brand-light">COUNTER</span></span><small>TRAIN. TRACK. PROGRESS.</small></div></div>
+    <div className="header-actions">{actions}</div>
+  </div></header>;
 }

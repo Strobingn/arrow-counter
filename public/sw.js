@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shooting-tracker-v1';
+const CACHE_NAME = 'arrow-counter-visual-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

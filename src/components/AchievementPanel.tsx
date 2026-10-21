@@ -34,7 +34,7 @@ export function AchievementPanel({ achievements, totalArrows, todayArrows, strea
     <Card className="p-4 rounded-2xl">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-medium flex items-center gap-1.5">
-          <Trophy className="w-4 h-4 text-amber-500" /> Achievements
+          <Trophy className="w-4 h-4 text-foreground" /> Achievements
         </h3>
         <Badge variant="secondary" className="text-xs">{unlocked.length}/{achievements.length}</Badge>
       </div>
@@ -44,8 +44,8 @@ export function AchievementPanel({ achievements, totalArrows, todayArrows, strea
           {unlocked.map(a => {
             const Icon = ICON_MAP[a.icon] || Star;
             return (
-              <div key={a.id} className="flex items-center gap-2 p-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl">
-                <Icon className="w-4 h-4 text-amber-600 shrink-0" />
+              <div key={a.id} className="flex items-center gap-2 p-2 bg-secondary border border-border rounded-xl">
+                <Icon className="w-4 h-4 text-foreground shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xs font-semibold truncate">{a.title}</p>
                   <p className="text-[10px] text-muted-foreground truncate">{a.description}</p>
@@ -83,7 +83,7 @@ export function StreakBadge({ streak, longest }: { streak: number; longest: numb
   if (streak === 0) return null;
   const isLongest = streak >= longest;
   return (
-    <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${isLongest ? 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300' : 'bg-primary/10 text-primary'}`}>
+    <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${isLongest ? 'bg-secondary text-foreground' : 'bg-primary/10 text-primary'}`}>
       <Flame className="w-3.5 h-3.5" />
       {streak}-day streak{isLongest && '!'}
     </div>
